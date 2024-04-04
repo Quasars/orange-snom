@@ -19,9 +19,7 @@ WIDGET_HELP_PATH = (
     # Correct DATA_FILES entry is needed in setup.py and documentation has to be built
     # before the wheel is created.
     (
-        '{}/help/orange-snom/index.html'.format(
-            sysconfig.get_path('data')
-        ),
+        '{}/help/orange-snom/index.html'.format(sysconfig.get_path('data')),
         None,
     ),
     # Online documentation url, used when the local documentation is not available.
