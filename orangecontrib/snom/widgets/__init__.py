@@ -1,5 +1,8 @@
 import sysconfig
 
+# register preprocessors
+import orangecontrib.snom.widgets.preprocessors
+
 # Category metadata.
 
 # Category icon show in the menu
