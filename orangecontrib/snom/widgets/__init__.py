@@ -1,7 +1,7 @@
 import sysconfig
 
 # register preprocessors
-import orangecontrib.snom.widgets.preprocessors
+import orangecontrib.snom.widgets.preprocessors  # noqa: F401
 
 # Category metadata.
 
