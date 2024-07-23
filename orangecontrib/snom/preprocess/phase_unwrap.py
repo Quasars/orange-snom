@@ -8,9 +8,6 @@ from orangecontrib.spectroscopy.preprocess.utils import SelectColumn, CommonDoma
 
 
 class _PhaseUnwrapCommon(CommonDomain):
-    def __init__(self, domain):
-        super().__init__(domain)
-
     def transformed(self, data):
         return np.unwrap(data.X)
 
@@ -19,9 +16,6 @@ class PhaseUnwrap(Preprocess):
     """
     Unwrap phase values using numpy.unwrap defaults or bypass the data.
     """
-
-    def __init__(self):
-        super().__init__()
 
     def __call__(self, data):
         common = _PhaseUnwrapCommon(data.domain)
