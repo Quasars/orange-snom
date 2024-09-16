@@ -6,9 +6,6 @@ from orangewidget.settings import SettingProvider
 import Orange.data
 from Orange import preprocess
 from Orange.preprocess import Preprocess
-from Orange.widgets.data.owpreprocess import (
-    PreprocessAction, Description, icon_path
-)
 from Orange.widgets.widget import Output
 
 from orangecontrib.spectroscopy.preprocess import SelectColumn, \
@@ -20,6 +17,7 @@ from orangecontrib.spectroscopy.widgets.owpreprocess import (
     create_preprocessor,
     InterruptException,
 )
+from orangecontrib.spectroscopy.widgets.preprocessors.registry import PreprocessorEditorRegistry
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 from orangecontrib.spectroscopy.widgets.gui import lineEditFloatRange
 
@@ -84,15 +82,8 @@ class AddEditor(BaseEditorOrange):
             pass  # TODO any settings
 
 
-PREPROCESSORS = [
-    PreprocessAction(
-        c.name, c.qualname, "Image",
-        Description(c.name, icon_path("Discretize.svg")),
-        c
-    ) for c in [
-        AddEditor
-    ]
-]
+preprocess_editors = PreprocessorEditorRegistry()
+preprocess_editors.register(AddEditor, 100)
 
 
 class AImagePlot(ImagePlot):
@@ -136,7 +127,7 @@ class OWPreprocessImage(SpectralImagePreprocess):
 
     settings_version = 2
 
-    PREPROCESSORS = PREPROCESSORS
+    editor_registry = preprocess_editors
     BUTTON_ADD_LABEL = "Add integral..."
 
     class Outputs:
