@@ -1,6 +1,7 @@
 import time
 
 from AnyQt.QtWidgets import QFormLayout
+from orangewidget.settings import SettingProvider
 
 import Orange.data
 from Orange import preprocess
@@ -12,9 +13,12 @@ from Orange.widgets.widget import Output
 
 from orangecontrib.spectroscopy.preprocess import SelectColumn, \
     CommonDomain
+from orangecontrib.spectroscopy.widgets.owhyper import ImagePlot
 
 from orangecontrib.spectroscopy.widgets.owpreprocess import (
-    SpectralPreprocess, create_preprocessor, InterruptException
+    GeneralPreprocess,
+    create_preprocessor,
+    InterruptException,
 )
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 from orangecontrib.spectroscopy.widgets.gui import lineEditFloatRange
@@ -91,7 +95,39 @@ PREPROCESSORS = [
 ]
 
 
-class OWPreprocessImage(SpectralPreprocess):
+class AImagePlot(ImagePlot):
+    def clear_markings(self):
+        pass
+
+
+class ImagePreviews:
+    curveplot = SettingProvider(AImagePlot)
+    curveplot_after = SettingProvider(AImagePlot)
+
+    value_type = 1
+
+    def __init__(self):
+        # the name of curveplot is kept because GeneralPreprocess
+        # expects these names
+        self.curveplot = AImagePlot(self)
+        self.curveplot_after = AImagePlot(self)
+
+    def shutdown(self):
+        self.curveplot.shutdown()
+        self.curveplot_after.shutdown()
+
+
+class SpectralImagePreprocess(GeneralPreprocess, ImagePreviews, openclass=True):
+    def __init__(self):
+        ImagePreviews.__init__(self)
+        super().__init__()
+
+    def onDeleteWidget(self):
+        super().onDeleteWidget()
+        ImagePreviews.shutdown(self)
+
+
+class OWPreprocessImage(SpectralImagePreprocess):
     name = "Preprocess image"
     id = "orangecontrib.snom.widgets.preprocessimage"
     description = "Process image"
@@ -169,4 +205,4 @@ class OWPreprocessImage(SpectralPreprocess):
 
 if __name__ == "__main__":  # pragma: no cover
     from Orange.widgets.utils.widgetpreview import WidgetPreview
-    WidgetPreview(OWPreprocessImage).run(Orange.data.Table("collagen.csv"))
+    WidgetPreview(OWPreprocessImage).run(Orange.data.Table("iris.tab"))
