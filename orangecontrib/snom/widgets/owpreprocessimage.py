@@ -1,20 +1,16 @@
 import time
 
-from AnyQt.QtWidgets import QFormLayout
-
 from Orange.data import Domain, DiscreteVariable, ContinuousVariable
 from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.utils.itemmodels import DomainModel
+from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 from orangewidget import gui
 from orangewidget.settings import SettingProvider, ContextSetting, Setting
 
 import Orange.data
 from Orange import preprocess
-from Orange.preprocess import Preprocess
 from Orange.widgets.widget import Output
 
-from orangecontrib.spectroscopy.preprocess import SelectColumn, \
-    CommonDomain
 from orangecontrib.spectroscopy.widgets.owhyper import ImagePlot
 
 from orangecontrib.spectroscopy.widgets.owpreprocess import (
@@ -22,74 +18,8 @@ from orangecontrib.spectroscopy.widgets.owpreprocess import (
     create_preprocessor,
     InterruptException,
 )
-from orangecontrib.spectroscopy.widgets.preprocessors.registry import PreprocessorEditorRegistry
-from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
-from orangecontrib.spectroscopy.widgets.gui import lineEditFloatRange
+
 from orangewidget.widget import Msg
-
-
-class AddFeature(SelectColumn):
-    InheritEq = True
-
-
-class _AddCommon(CommonDomain):
-
-    def __init__(self, amount, domain):
-        super().__init__(domain)
-        self.amount = amount
-
-    def transformed(self, data):
-        return data.X + self.amount
-
-
-class AddConstant(Preprocess):
-
-    def __init__(self, amount=0.):
-        self.amount = amount
-
-    def __call__(self, data):
-        common = _AddCommon(self.amount, data.domain)
-        atts = [a.copy(compute_value=AddFeature(i, common))
-                for i, a in enumerate(data.domain.attributes)]
-        domain = Orange.data.Domain(atts, data.domain.class_vars,
-                                    data.domain.metas)
-        return data.from_table(domain, data)
-
-
-class AddEditor(BaseEditorOrange):
-
-    name = "Add constant"
-    qualname = "orangecontrib.snom.add_constant_test"
-
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent, **kwargs)
-
-        self.amount = 0.
-
-        form = QFormLayout()
-        amounte = lineEditFloatRange(self, self, "amount", callback=self.edited.emit)
-        form.addRow("Addition", amounte)
-        self.controlArea.setLayout(form)
-
-    def activateOptions(self):
-        pass  # actions when user starts changing options
-
-    def setParameters(self, params):
-        self.amount = params.get("amount", 0.)
-
-    @classmethod
-    def createinstance(cls, params):
-        params = dict(params)
-        amount = float(params.get("amount", 0.))
-        return AddConstant(amount=amount)
-
-    def set_preview_data(self, data):
-        if data:
-            pass  # TODO any settings
-
-
-preprocess_editors = PreprocessorEditorRegistry()
-preprocess_editors.register(AddEditor, 100)
 
 
 class AImagePlot(ImagePlot):
@@ -138,7 +68,7 @@ class OWPreprocessImage(SpectralImagePreprocess):
     _max_preview_spectra = 1000000
     preview_curves = Setting(10000)
 
-    editor_registry = preprocess_editors
+    editor_registry = preprocess_image_editors
     BUTTON_ADD_LABEL = "Add preprocessor..."
 
     attr_value = ContextSetting(None)
@@ -158,8 +88,7 @@ class OWPreprocessImage(SpectralImagePreprocess):
 
     def image_values(self):
         attr_value = self.attr_value.name if self.attr_value else None
-        return lambda data, attr=attr_value: \
-            data.transform(Domain([data.domain[attr]]))
+        return lambda data, attr=attr_value: data.transform(Domain([data.domain[attr]]))
 
     def image_values_fixed_levels(self):
         return None
@@ -168,13 +97,19 @@ class OWPreprocessImage(SpectralImagePreprocess):
         self.markings_list = []
         super().__init__()
 
-        self.feature_value_model = DomainModel(DomainModel.SEPARATED,
-                                               valid_types=ContinuousVariable)
+        self.feature_value_model = DomainModel(
+            DomainModel.SEPARATED, valid_types=ContinuousVariable
+        )
         self.feature_value = gui.comboBox(
-            self.preview_settings_box, self, "attr_value",
+            self.preview_settings_box,
+            self,
+            "attr_value",
             label="Show feature",
-            contentsLength=12, searchable=True,
-            callback=self.update_feature_value, model=self.feature_value_model)
+            contentsLength=12,
+            searchable=True,
+            callback=self.update_feature_value,
+            model=self.feature_value_model,
+        )
 
         self.contextAboutToBeOpened.connect(lambda x: self.init_interface_data(x[0]))
 
@@ -224,8 +159,11 @@ class OWPreprocessImage(SpectralImagePreprocess):
         def valid_context(data):
             if data is None:
                 return False
-            annotation_features = [v for v in data.domain.metas + data.domain.class_vars
-                                   if isinstance(v, (DiscreteVariable, ContinuousVariable))]
+            annotation_features = [
+                v
+                for v in data.domain.metas + data.domain.class_vars
+                if isinstance(v, (DiscreteVariable, ContinuousVariable))
+            ]
             return len(annotation_features) >= 1
 
         if valid_context(data):
@@ -277,4 +215,5 @@ class OWPreprocessImage(SpectralImagePreprocess):
 
 if __name__ == "__main__":  # pragma: no cover
     from Orange.widgets.utils.widgetpreview import WidgetPreview
+
     WidgetPreview(OWPreprocessImage).run(Orange.data.Table("whitelight.gsf"))
