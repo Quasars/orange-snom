@@ -1,7 +1,12 @@
 import time
 
 from AnyQt.QtWidgets import QFormLayout
-from orangewidget.settings import SettingProvider
+
+from Orange.data import Domain, DiscreteVariable, ContinuousVariable
+from Orange.widgets.settings import DomainContextHandler
+from Orange.widgets.utils.itemmodels import DomainModel
+from orangewidget import gui
+from orangewidget.settings import SettingProvider, ContextSetting, Setting
 
 import Orange.data
 from Orange import preprocess
@@ -20,6 +25,7 @@ from orangecontrib.spectroscopy.widgets.owpreprocess import (
 from orangecontrib.spectroscopy.widgets.preprocessors.registry import PreprocessorEditorRegistry
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 from orangecontrib.spectroscopy.widgets.gui import lineEditFloatRange
+from orangewidget.widget import Msg
 
 
 class AddFeature(SelectColumn):
@@ -127,19 +133,73 @@ class OWPreprocessImage(SpectralImagePreprocess):
 
     settings_version = 2
 
+    settingsHandler = DomainContextHandler()
+
+    _max_preview_spectra = 1000000
+    preview_curves = Setting(10000)
+
     editor_registry = preprocess_editors
-    BUTTON_ADD_LABEL = "Add integral..."
+    BUTTON_ADD_LABEL = "Add preprocessor..."
+
+    attr_value = ContextSetting(None)
 
     class Outputs:
         preprocessed_data = Output("Integrated Data", Orange.data.Table, default=True)
         preprocessor = Output("Preprocessor", preprocess.preprocess.Preprocess)
 
+    class Warning(SpectralImagePreprocess.Warning):
+        threshold_error = Msg("Low slider should be less than High")
+
+    class Error(SpectralImagePreprocess.Error):
+        image_too_big = Msg("Image for chosen features is too big ({} x {}).")
+
+    class Information(SpectralImagePreprocess.Information):
+        not_shown = Msg("Undefined positions: {} data point(s) are not shown.")
+
+    def image_values(self):
+        attr_value = self.attr_value.name if self.attr_value else None
+        return lambda data, attr=attr_value: \
+            data.transform(Domain([data.domain[attr]]))
+
+    def image_values_fixed_levels(self):
+        return None
+
     def __init__(self):
         self.markings_list = []
         super().__init__()
 
+        self.feature_value_model = DomainModel(DomainModel.SEPARATED,
+                                               valid_types=ContinuousVariable)
+        self.feature_value = gui.comboBox(
+            self.preview_settings_box, self, "attr_value",
+            label="Show feature",
+            contentsLength=12, searchable=True,
+            callback=self.update_feature_value, model=self.feature_value_model)
+
+        self.contextAboutToBeOpened.connect(lambda x: self.init_interface_data(x[0]))
+
+        self.preview_runner.preview_updated.connect(self.redraw_data)
+
+    def update_feature_value(self):
+        self.redraw_data()
+
+    def redraw_data(self):
+        self.curveplot.update_view()
+        self.curveplot_after.update_view()
+
+    def init_interface_data(self, data):
+        self.init_attr_values(data)
+        self.curveplot.init_interface_data(data)
+        self.curveplot_after.init_interface_data(data)
+
+    def init_attr_values(self, data):
+        domain = data.domain if data is not None else None
+        self.feature_value_model.set_domain(domain)
+        self.attr_value = (
+            self.feature_value_model[0] if self.feature_value_model else None
+        )
+
     def show_preview(self, show_info_anyway=False):
-        # redraw integrals if number of preview curves was changed
         super().show_preview(False)
 
     def create_outputs(self):
@@ -155,6 +215,27 @@ class OWPreprocessImage(SpectralImagePreprocess):
             pp_def,
             self.process_reference,
         )
+
+    def set_data(self, data):
+        super().set_data(data)
+
+        self.closeContext()
+
+        def valid_context(data):
+            if data is None:
+                return False
+            annotation_features = [v for v in data.domain.metas + data.domain.class_vars
+                                   if isinstance(v, (DiscreteVariable, ContinuousVariable))]
+            return len(annotation_features) >= 1
+
+        if valid_context(data):
+            self.openContext(data)
+        else:
+            # to generate valid interface even if context was not loaded
+            self.contextAboutToBeOpened.emit([data])
+
+        self.curveplot.update_view()
+        self.curveplot_after.update_view()
 
     @staticmethod
     def run_task(
@@ -196,4 +277,4 @@ class OWPreprocessImage(SpectralImagePreprocess):
 
 if __name__ == "__main__":  # pragma: no cover
     from Orange.widgets.utils.widgetpreview import WidgetPreview
-    WidgetPreview(OWPreprocessImage).run(Orange.data.Table("iris.tab"))
+    WidgetPreview(OWPreprocessImage).run(Orange.data.Table("whitelight.gsf"))
