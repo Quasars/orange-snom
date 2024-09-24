@@ -13,7 +13,7 @@ import Orange.data
 from Orange import preprocess
 from Orange.widgets.widget import Output
 
-from orangecontrib.spectroscopy.widgets.owhyper import ImagePlot
+from orangecontrib.spectroscopy.widgets.owhyper import BasicImagePlot
 
 from orangecontrib.spectroscopy.widgets.owpreprocess import (
     GeneralPreprocess,
@@ -24,7 +24,18 @@ from orangecontrib.spectroscopy.widgets.owpreprocess import (
 from orangewidget.widget import Msg
 
 
-class AImagePlot(ImagePlot):
+class AImagePlot(BasicImagePlot):
+    attr_x = None  # not settings, set from the parent class
+    attr_y = None
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.axes_settings_box.hide()
+        self.rgb_settings_box.hide()
+
+    def add_selection_actions(self, _):
+        pass
+
     def clear_markings(self):
         pass
 
@@ -102,7 +113,14 @@ class OWPreprocessImage(SpectralImagePreprocess):
         super().__init__()
 
         self.feature_value_model = DomainModel(
-            DomainModel.SEPARATED, valid_types=ContinuousVariable
+            order=(
+                DomainModel.ATTRIBUTES,
+                DomainModel.Separator,
+                DomainModel.CLASSES,
+                DomainModel.Separator,
+                DomainModel.METAS,
+            ),
+            valid_types=ContinuousVariable,
         )
 
         common_options = {
