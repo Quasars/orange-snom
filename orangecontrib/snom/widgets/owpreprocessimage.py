@@ -1,5 +1,7 @@
 import time
 
+from AnyQt.QtCore import Qt
+
 from Orange.data import Domain, DiscreteVariable, ContinuousVariable
 from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.utils.itemmodels import DomainModel
@@ -11,7 +13,7 @@ import Orange.data
 from Orange import preprocess
 from Orange.widgets.widget import Output
 
-from orangecontrib.spectroscopy.widgets.owhyper import ImagePlot
+from orangecontrib.spectroscopy.widgets.owhyper import BasicImagePlot
 
 from orangecontrib.spectroscopy.widgets.owpreprocess import (
     GeneralPreprocess,
@@ -22,7 +24,18 @@ from orangecontrib.spectroscopy.widgets.owpreprocess import (
 from orangewidget.widget import Msg
 
 
-class AImagePlot(ImagePlot):
+class AImagePlot(BasicImagePlot):
+    attr_x = None  # not settings, set from the parent class
+    attr_y = None
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.axes_settings_box.hide()
+        self.rgb_settings_box.hide()
+
+    def add_selection_actions(self, _):
+        pass
+
     def clear_markings(self):
         pass
 
@@ -72,6 +85,8 @@ class OWPreprocessImage(SpectralImagePreprocess):
     BUTTON_ADD_LABEL = "Add preprocessor..."
 
     attr_value = ContextSetting(None)
+    attr_x = ContextSetting(None, exclude_attributes=True)
+    attr_y = ContextSetting(None, exclude_attributes=True)
 
     class Outputs:
         preprocessed_data = Output("Integrated Data", Orange.data.Table, default=True)
@@ -98,22 +113,67 @@ class OWPreprocessImage(SpectralImagePreprocess):
         super().__init__()
 
         self.feature_value_model = DomainModel(
-            DomainModel.SEPARATED, valid_types=ContinuousVariable
+            order=(
+                DomainModel.ATTRIBUTES,
+                DomainModel.Separator,
+                DomainModel.CLASSES,
+                DomainModel.Separator,
+                DomainModel.METAS,
+            ),
+            valid_types=ContinuousVariable,
         )
+
+        common_options = {
+            "labelWidth": 50,
+            "orientation": Qt.Horizontal,
+            "sendSelectedValue": True,
+        }
+
         self.feature_value = gui.comboBox(
             self.preview_settings_box,
             self,
             "attr_value",
-            label="Show feature",
+            label="Show",
             contentsLength=12,
             searchable=True,
             callback=self.update_feature_value,
             model=self.feature_value_model,
+            **common_options
+        )
+
+        self.xy_model = DomainModel(
+            DomainModel.METAS | DomainModel.CLASSES, valid_types=DomainModel.PRIMITIVE
+        )
+
+        self.cb_attr_x = gui.comboBox(
+            self.preview_settings_box,
+            self,
+            "attr_x",
+            label="Axis x",
+            callback=self.update_attr,
+            model=self.xy_model,
+            **common_options
+        )
+        self.cb_attr_y = gui.comboBox(
+            self.preview_settings_box,
+            self,
+            "attr_y",
+            label="Axis y",
+            callback=self.update_attr,
+            model=self.xy_model,
+            **common_options
         )
 
         self.contextAboutToBeOpened.connect(lambda x: self.init_interface_data(x[0]))
 
         self.preview_runner.preview_updated.connect(self.redraw_data)
+
+    def update_attr(self):
+        self.curveplot.attr_x = self.attr_x
+        self.curveplot.attr_y = self.attr_y
+        self.curveplot_after.attr_x = self.attr_x
+        self.curveplot_after.attr_y = self.attr_y
+        self.redraw_data()
 
     def update_feature_value(self):
         self.redraw_data()
@@ -133,6 +193,9 @@ class OWPreprocessImage(SpectralImagePreprocess):
         self.attr_value = (
             self.feature_value_model[0] if self.feature_value_model else None
         )
+        self.xy_model.set_domain(domain)
+        self.attr_x = self.xy_model[0] if self.xy_model else None
+        self.attr_y = self.xy_model[1] if len(self.xy_model) >= 2 else self.attr_x
 
     def show_preview(self, show_info_anyway=False):
         super().show_preview(False)
