@@ -1,6 +1,7 @@
 from AnyQt.QtWidgets import QFormLayout
 
 from Orange.data import Domain
+from orangecontrib.spectroscopy.utils import get_hypercube
 
 from orangewidget.gui import comboBox
 
@@ -13,18 +14,23 @@ from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_e
 from orangecontrib.snom.widgets.preprocessors.utils import PreprocessImageOpts
 
 
-class AddFeature(SelectColumn):
-    InheritEq = True
-
-
 class _LineLevelCommon(CommonDomain):
-    def __init__(self, method, domain):
+    def __init__(self, method, domain, image_opts):
         super().__init__(domain)
         self.method = method
+        self.image_opts = image_opts
 
     def transformed(self, data):
-        # TODO figure out 1D to 2D properly
-        return LineLevel(method=self.method).transform(data.X)
+        vat = data.domain[self.image_opts["attr_value"]]
+        ndom = Domain([vat], data.domain.class_vars, data.domain.metas)
+        data = data.transform(ndom)
+        xat = data.domain[self.image_opts["attr_x"]]
+        yat = data.domain[self.image_opts["attr_y"]]
+        hypercube, lsx, lsy = get_hypercube(data, xat, yat)
+        transformed = LineLevel(method=self.method).transform(hypercube[:, :, 0])
+        print(transformed)
+        # TODO transform the resulting matrix back to original indices;
+        # for this the get_hypercube will need to return an actual index matrix
 
 
 class LineLevelProcessor(PreprocessImageOpts):
@@ -32,12 +38,11 @@ class LineLevelProcessor(PreprocessImageOpts):
         self.method = method
 
     def __call__(self, data, image_opts):
-        common = _LineLevelCommon(self.method, data.domain)
-        atts = [
-            a.copy(compute_value=AddFeature(i, common))
-            for i, a in enumerate(data.domain.attributes)
-        ]
-        domain = Domain(atts, data.domain.class_vars, data.domain.metas)
+        common = _LineLevelCommon(self.method, data.domain, image_opts)
+        at = data.domain[image_opts["attr_value"]].copy(
+            compute_value=SelectColumn(0, common)
+        )
+        domain = Domain([at], data.domain.class_vars, data.domain.metas)
         return data.from_table(domain, data)
 
 
