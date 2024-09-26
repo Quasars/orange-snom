@@ -6,6 +6,7 @@ from Orange.data import Domain, DiscreteVariable, ContinuousVariable
 from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.utils.itemmodels import DomainModel
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
+from orangecontrib.snom.widgets.preprocessors.utils import PreprocessImageOpts
 from orangewidget import gui
 from orangewidget.settings import SettingProvider, ContextSetting, Setting
 
@@ -69,6 +70,8 @@ class SpectralImagePreprocess(GeneralPreprocess, ImagePreviews, openclass=True):
 
 
 def execute_with_image_opts(pp, data, image_opts):
+    if isinstance(pp, PreprocessImageOpts):
+        return pp(data, image_opts)
     return pp(data)
 
 

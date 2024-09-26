@@ -1,7 +1,6 @@
 from AnyQt.QtWidgets import QFormLayout
 
 from Orange.data import Domain
-from Orange.preprocess import Preprocess
 
 from orangewidget.gui import comboBox
 
@@ -11,6 +10,7 @@ from orangecontrib.spectroscopy.preprocess import SelectColumn, CommonDomain
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
+from orangecontrib.snom.widgets.preprocessors.utils import PreprocessImageOpts
 
 
 class AddFeature(SelectColumn):
@@ -27,11 +27,11 @@ class _LineLevelCommon(CommonDomain):
         return LineLevel(method=self.method).transform(data.X)
 
 
-class LineLevelProcessor(Preprocess):
+class LineLevelProcessor(PreprocessImageOpts):
     def __init__(self, method="median"):
         self.method = method
 
-    def __call__(self, data):
+    def __call__(self, data, image_opts):
         common = _LineLevelCommon(self.method, data.domain)
         atts = [
             a.copy(compute_value=AddFeature(i, common))
