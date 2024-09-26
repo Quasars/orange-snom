@@ -6,7 +6,7 @@ from Orange.data import Domain, DiscreteVariable, ContinuousVariable
 from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.utils.itemmodels import DomainModel
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
-from orangecontrib.snom.widgets.preprocessors.utils import PreprocessImageOpts
+from orangecontrib.snom.preprocess.utils import PreprocessImageOpts
 from orangewidget import gui
 from orangewidget.settings import SettingProvider, ContextSetting, Setting
 

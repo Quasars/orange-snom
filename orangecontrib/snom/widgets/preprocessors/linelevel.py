@@ -1,7 +1,7 @@
 import numpy as np
 from AnyQt.QtWidgets import QFormLayout
 
-from Orange.data import Domain
+from orangecontrib.spectroscopy.utils import InvalidAxisException
 
 from orangewidget.gui import comboBox
 
@@ -11,26 +11,11 @@ from orangecontrib.spectroscopy.preprocess import SelectColumn, CommonDomain
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
-from orangecontrib.snom.widgets.preprocessors.utils import PreprocessImageOpts
-
-
-def get_ndim_hyperspec(data, attrs):
-    # mostly copied from orangecontrib.spectroscopy.utils,
-    # but returns the indices too
-    ndom = Domain(attrs)
-    datam = data.transform(ndom)
-
-    from orangecontrib.spectroscopy.utils import axes_to_ndim_linspace
-
-    ls, indices = axes_to_ndim_linspace(datam, attrs)
-
-    # set data
-    new_shape = tuple([lsa[2] for lsa in ls]) + (data.X.shape[1],)
-    hyperspec = np.ones(new_shape) * np.nan
-
-    hyperspec[indices] = data.X
-
-    return hyperspec, ls, indices
+from orangecontrib.snom.preprocess.utils import (
+    PreprocessImageOpts,
+    get_ndim_hyperspec,
+    domain_with_single_attribute_in_x,
+)
 
 
 class _LineLevelCommon(CommonDomain):
@@ -41,14 +26,16 @@ class _LineLevelCommon(CommonDomain):
 
     def transformed(self, data):
         vat = data.domain[self.image_opts["attr_value"]]
-        ndom = Domain([vat], data.domain.class_vars, data.domain.metas)
+        ndom = domain_with_single_attribute_in_x(vat, data.domain)
         data = data.transform(ndom)
-        xat = data.domain[self.image_opts["attr_x"]]
-        yat = data.domain[self.image_opts["attr_y"]]
-        hypercube, _, indices = get_ndim_hyperspec(data, (xat, yat))
-        transformed = LineLevel(method=self.method).transform(hypercube[:, :, 0])
-        out = transformed[indices].reshape(len(data), -1)
-        return out
+        try:
+            hypercube, _, indices = get_ndim_hyperspec(
+                data, (self.image_opts["attr_x"], self.image_opts["attr_y"])
+            )
+            transformed = LineLevel(method=self.method).transform(hypercube[:, :, 0])
+            return transformed[indices].reshape(-1, 1)
+        except InvalidAxisException:
+            return np.full((len(data), 1), np.nan)
 
 
 class LineLevelProcessor(PreprocessImageOpts):
@@ -60,8 +47,8 @@ class LineLevelProcessor(PreprocessImageOpts):
         at = data.domain[image_opts["attr_value"]].copy(
             compute_value=SelectColumn(0, common)
         )
-        domain = Domain([at], data.domain.class_vars, data.domain.metas)
-        return data.from_table(domain, data)
+        domain = domain_with_single_attribute_in_x(at, data.domain)
+        return data.transform(domain)
 
 
 class LineLevelEditor(BaseEditorOrange):
