@@ -5,6 +5,7 @@ from AnyQt.QtWidgets import QFormLayout
 from Orange.data import Domain
 from Orange.preprocess import Preprocess
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
+from orangecontrib.snom.widgets.preprocessors.utils import reshape_to_image
 
 from orangecontrib.spectroscopy.preprocess import SelectColumn, CommonDomain
 
@@ -26,8 +27,9 @@ class _BackGroundFitCommon(CommonDomain):
         self.yorder = yorder
 
     def transformed(self, data):
-        d, b = BackgroundPolyFit(xorder=self.xorder, yorder=self.yorder).transform(data.X)
-        return d
+        im = reshape_to_image(data.X,data.metas[:,0],data.metas[:,1])
+        d, b = BackgroundPolyFit(xorder=self.xorder, yorder=self.yorder).transform(im)
+        return np.reshape(d,(-1,1))
 
 
 class BackGroundFit(Preprocess):
