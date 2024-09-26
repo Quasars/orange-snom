@@ -240,10 +240,10 @@ class OWPreprocessImage(SpectralImagePreprocess):
         self.curveplot.attr_y = self.attr_y
         self.curveplot_after.attr_x = self.attr_x
         self.curveplot_after.attr_y = self.attr_y
-        self.redraw_data()
+        self.on_modelchanged()
 
     def update_feature_value(self):
-        self.redraw_data()
+        self.on_modelchanged()
 
     def redraw_data(self):
         self.curveplot.update_view()
@@ -308,8 +308,7 @@ class OWPreprocessImage(SpectralImagePreprocess):
             # to generate valid interface even if context was not loaded
             self.contextAboutToBeOpened.emit([data])
 
-        self.curveplot.update_view()
-        self.curveplot_after.update_view()
+        self.redraw_data()
 
     @staticmethod
     def run_task(
