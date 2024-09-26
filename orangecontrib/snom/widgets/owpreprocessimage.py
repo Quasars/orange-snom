@@ -11,7 +11,7 @@ from orangewidget.settings import SettingProvider, ContextSetting, Setting
 
 import Orange.data
 from Orange import preprocess
-from Orange.widgets.widget import Output
+from Orange.widgets.widget import Input, Output
 
 from orangecontrib.spectroscopy.widgets.owhyper import BasicImagePlot
 
@@ -67,7 +67,16 @@ class SpectralImagePreprocess(GeneralPreprocess, ImagePreviews, openclass=True):
         ImagePreviews.shutdown(self)
 
 
-class OWPreprocessImage(SpectralImagePreprocess):
+class SpectralImagePreprocessReference(SpectralImagePreprocess, openclass=True):
+    class Inputs(SpectralImagePreprocess.Inputs):
+        reference = Input("Reference", Orange.data.Table)
+
+    @Inputs.reference
+    def set_reference(self, reference):
+        self.reference_data = reference
+
+
+class OWPreprocessImage(SpectralImagePreprocessReference):
     name = "Preprocess image"
     id = "orangecontrib.snom.widgets.preprocessimage"
     description = "Process image"
@@ -279,4 +288,5 @@ class OWPreprocessImage(SpectralImagePreprocess):
 if __name__ == "__main__":  # pragma: no cover
     from Orange.widgets.utils.widgetpreview import WidgetPreview
 
-    WidgetPreview(OWPreprocessImage).run(Orange.data.Table("whitelight.gsf"))
+    data = Orange.data.Table("whitelight.gsf")
+    WidgetPreview(OWPreprocessImage).run(set_data=data, set_reference=data)
