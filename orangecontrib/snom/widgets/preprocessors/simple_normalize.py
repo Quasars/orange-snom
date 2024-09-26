@@ -1,6 +1,4 @@
-# this is just an example of registration
-
-from AnyQt.QtWidgets import QFormLayout, QComboBox
+from AnyQt.QtWidgets import QFormLayout
 
 from Orange.data import Domain
 from Orange.preprocess import Preprocess
@@ -13,7 +11,6 @@ from orangecontrib.spectroscopy.widgets.gui import lineEditFloatRange
 from orangewidget.gui import comboBox
 
 from pySNOM.images import SimpleNormalize
-import numpy as np
 
 
 class AddFeature(SelectColumn):
@@ -26,9 +23,10 @@ class _SimpleNormCommon(CommonDomain):
         self.method = method
         self.value = value
         # print(value,method)
+
     def transformed(self, data):
         return SimpleNormalize(method=self.method, value=self.value).transform(data.X)
-        
+
 
 class SimpleNorm(Preprocess):
     def __init__(self, method='median', value=1.0):
@@ -56,9 +54,11 @@ class SimpleNormEditor(BaseEditorOrange):
         self.value = 1.0
 
         form = QFormLayout()
-        self.valueedit = lineEditFloatRange(self, self, "value", callback=self.edited.emit)
+        self.valueedit = lineEditFloatRange(
+            self, self, "value", callback=self.edited.emit
+        )
         self.cb_method = comboBox(self, self, "method", callback=self.setmethod)
-        self.cb_method.addItems(['median','mean','manual'])
+        self.cb_method.addItems(['median', 'mean', 'manual'])
         self.cb_method.setCurrentText('manual')
         form.addRow("method", self.cb_method)
         form.addRow("value", self.valueedit)
@@ -69,7 +69,7 @@ class SimpleNormEditor(BaseEditorOrange):
             self.valueedit.setEnabled(False)
         else:
             self.valueedit.setEnabled(True)
-        
+
         self.method = self.cb_method.currentText()
         self.edited.emit()
 

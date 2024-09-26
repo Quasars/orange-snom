@@ -27,9 +27,9 @@ class _BackGroundFitCommon(CommonDomain):
         self.yorder = yorder
 
     def transformed(self, data):
-        im = reshape_to_image(data.X,data.metas[:,0],data.metas[:,1])
+        im = reshape_to_image(data.X, data.metas[:, 0], data.metas[:, 1])
         d, b = BackgroundPolyFit(xorder=self.xorder, yorder=self.yorder).transform(im)
-        return np.reshape(d,(-1,1))
+        return np.reshape(d, (-1, 1))
 
 
 class BackGroundFit(Preprocess):

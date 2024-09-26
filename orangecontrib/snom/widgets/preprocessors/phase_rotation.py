@@ -24,7 +24,7 @@ class _PhaseRotCommon(CommonDomain):
         self.degree = degree
 
     def transformed(self, data):
-        return RotatePhase(degree = self.degree).transform(data.X)
+        return RotatePhase(degree=self.degree).transform(data.X)
 
 
 class PhaseRotation(Preprocess):
