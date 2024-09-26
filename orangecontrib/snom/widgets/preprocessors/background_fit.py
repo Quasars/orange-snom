@@ -4,7 +4,8 @@ from AnyQt.QtWidgets import QFormLayout
 
 from Orange.data import Domain
 from Orange.preprocess import Preprocess
-from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
+
+# from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 from orangecontrib.snom.widgets.preprocessors.utils import reshape_to_image
 
 from orangecontrib.spectroscopy.preprocess import SelectColumn, CommonDomain
@@ -83,4 +84,4 @@ class BackGroundFitEditor(BaseEditorOrange):
             pass  # TODO any settings
 
 
-preprocess_image_editors.register(BackGroundFitEditor, 400)
+# preprocess_image_editors.register(BackGroundFitEditor, 400)
