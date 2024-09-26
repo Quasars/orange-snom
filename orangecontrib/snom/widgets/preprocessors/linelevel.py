@@ -1,7 +1,7 @@
+import numpy as np
 from AnyQt.QtWidgets import QFormLayout
 
 from Orange.data import Domain
-from orangecontrib.spectroscopy.utils import get_hypercube
 
 from orangewidget.gui import comboBox
 
@@ -12,6 +12,25 @@ from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOra
 
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 from orangecontrib.snom.widgets.preprocessors.utils import PreprocessImageOpts
+
+
+def get_ndim_hyperspec(data, attrs):
+    # mostly copied from orangecontrib.spectroscopy.utils,
+    # but returns the indices too
+    ndom = Domain(attrs)
+    datam = data.transform(ndom)
+
+    from orangecontrib.spectroscopy.utils import axes_to_ndim_linspace
+
+    ls, indices = axes_to_ndim_linspace(datam, attrs)
+
+    # set data
+    new_shape = tuple([lsa[2] for lsa in ls]) + (data.X.shape[1],)
+    hyperspec = np.ones(new_shape) * np.nan
+
+    hyperspec[indices] = data.X
+
+    return hyperspec, ls, indices
 
 
 class _LineLevelCommon(CommonDomain):
@@ -26,11 +45,10 @@ class _LineLevelCommon(CommonDomain):
         data = data.transform(ndom)
         xat = data.domain[self.image_opts["attr_x"]]
         yat = data.domain[self.image_opts["attr_y"]]
-        hypercube, lsx, lsy = get_hypercube(data, xat, yat)
+        hypercube, _, indices = get_ndim_hyperspec(data, (xat, yat))
         transformed = LineLevel(method=self.method).transform(hypercube[:, :, 0])
-        print(transformed)
-        # TODO transform the resulting matrix back to original indices;
-        # for this the get_hypercube will need to return an actual index matrix
+        out = transformed[indices].reshape(len(data), -1)
+        return out
 
 
 class LineLevelProcessor(PreprocessImageOpts):
