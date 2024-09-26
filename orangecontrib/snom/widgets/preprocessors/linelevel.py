@@ -1,5 +1,3 @@
-# this is just an example of registration
-import numpy as np
 from AnyQt.QtWidgets import QFormLayout
 
 from Orange.data import Domain
@@ -7,13 +5,12 @@ from Orange.preprocess import Preprocess
 
 from orangewidget.gui import comboBox
 
-from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
+from pySNOM.images import LineLevel
 
 from orangecontrib.spectroscopy.preprocess import SelectColumn, CommonDomain
-
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 
-from pySNOM.images import LineLevel
+from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 
 
 class AddFeature(SelectColumn):
@@ -54,7 +51,7 @@ class LineLevelEditor(BaseEditorOrange):
         self.method = 'median'
 
         form = QFormLayout()
-        levelmethod= comboBox(self, self, "method", callback=self.edited.emit)
+        levelmethod = comboBox(self, self, "method", callback=self.edited.emit)
         levelmethod.addItems(['median', 'mean', 'difference'])
         form.addRow("Leveling method", levelmethod)
         self.controlArea.setLayout(form)
