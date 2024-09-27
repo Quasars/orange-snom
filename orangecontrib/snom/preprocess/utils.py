@@ -2,6 +2,7 @@ import numpy as np
 
 from Orange.data import Domain
 from Orange.preprocess import Preprocess
+from orangecontrib.spectroscopy.preprocess import CommonDomain, SelectColumn
 from orangecontrib.spectroscopy.utils import (
     InvalidAxisException,
     values_to_linspace,
@@ -11,6 +12,19 @@ from orangecontrib.spectroscopy.utils import (
 
 class PreprocessImageOpts(Preprocess):
     pass
+
+
+class PreprocessImageOpts2D(PreprocessImageOpts):
+    def __call__(self, data, image_opts):
+        common = self.image_transformer(data, image_opts)
+        at = data.domain[image_opts["attr_value"]].copy(
+            compute_value=SelectColumn(0, common)
+        )
+        domain = domain_with_single_attribute_in_x(at, data.domain)
+        return data.transform(domain)
+
+    def image_transformer(self, data, image_opts):
+        raise NotImplementedError
 
 
 def axes_to_ndim_linspace(coordinates):
@@ -53,3 +67,28 @@ def domain_with_single_attribute_in_x(attribute, domain):
     class_vars = [a for a in domain.class_vars if a.name != attribute.name]
     metas = [a for a in domain.metas if a.name != attribute.name]
     return Domain([attribute], class_vars, metas)
+
+
+class CommonDomainImage2D(CommonDomain):
+    def __init__(self, domain: Domain, image_opts: dict):
+        self.domain = domain
+        self.image_opts = image_opts
+
+    def __call__(self, data):
+        data = self.transform_domain(data)
+        vat = data.domain[self.image_opts["attr_value"]]
+        ndom = domain_with_single_attribute_in_x(vat, data.domain)
+        data = data.transform(ndom)
+        try:
+            hypercube, _, indices = get_ndim_hyperspec(
+                data, (self.image_opts["attr_x"], self.image_opts["attr_y"])
+            )
+            image = hypercube[:, :, 0]
+            transformed = self.transform_image(image)
+            return transformed[indices].reshape(-1, 1)
+        except InvalidAxisException:
+            return np.full((len(data), 1), np.nan)
+        return self.transformed(data)
+
+    def transform_image(self, image):
+        raise NotImplementedError

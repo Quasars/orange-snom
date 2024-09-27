@@ -1,54 +1,33 @@
-import numpy as np
 from AnyQt.QtWidgets import QFormLayout
-
-from orangecontrib.spectroscopy.utils import InvalidAxisException
 
 from orangewidget.gui import comboBox
 
 from pySNOM.images import LineLevel
 
-from orangecontrib.spectroscopy.preprocess import SelectColumn, CommonDomain
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 from orangecontrib.snom.preprocess.utils import (
-    PreprocessImageOpts,
-    get_ndim_hyperspec,
-    domain_with_single_attribute_in_x,
+    PreprocessImageOpts2D,
+    CommonDomainImage2D,
 )
 
 
-class _LineLevelCommon(CommonDomain):
+class _LineLevelCommon(CommonDomainImage2D):
     def __init__(self, method, domain, image_opts):
-        super().__init__(domain)
+        super().__init__(domain, image_opts)
         self.method = method
-        self.image_opts = image_opts
 
-    def transformed(self, data):
-        vat = data.domain[self.image_opts["attr_value"]]
-        ndom = domain_with_single_attribute_in_x(vat, data.domain)
-        data = data.transform(ndom)
-        try:
-            hypercube, _, indices = get_ndim_hyperspec(
-                data, (self.image_opts["attr_x"], self.image_opts["attr_y"])
-            )
-            transformed = LineLevel(method=self.method).transform(hypercube[:, :, 0])
-            return transformed[indices].reshape(-1, 1)
-        except InvalidAxisException:
-            return np.full((len(data), 1), np.nan)
+    def transform_image(self, image):
+        return LineLevel(method=self.method).transform(image)
 
 
-class LineLevelProcessor(PreprocessImageOpts):
+class LineLevelProcessor(PreprocessImageOpts2D):
     def __init__(self, method="median"):
         self.method = method
 
-    def __call__(self, data, image_opts):
-        common = _LineLevelCommon(self.method, data.domain, image_opts)
-        at = data.domain[image_opts["attr_value"]].copy(
-            compute_value=SelectColumn(0, common)
-        )
-        domain = domain_with_single_attribute_in_x(at, data.domain)
-        return data.transform(domain)
+    def image_transformer(self, data, image_opts):
+        return _LineLevelCommon(self.method, data.domain, image_opts)
 
 
 class LineLevelEditor(BaseEditorOrange):
