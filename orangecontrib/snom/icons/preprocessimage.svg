@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
+<svg
+   version="1.1"
+   id="Layer_1"
+   x="0px"
+   y="0px"
+   width="48px"
+   height="48px"
+   viewBox="0 0 48 48"
+   enable-background="new 0 0 48 48"
+   xml:space="preserve"
+   sodipodi:docname="preprocess_image.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs5"><inkscape:path-effect
+   effect="powerclip"
+   id="path-effect8"
+   is_visible="true"
+   lpeversion="1"
+   inverse="true"
+   flatten="false"
+   hide_clip="false"
+   message="Use fill-rule evenodd on &lt;b&gt;fill and stroke&lt;/b&gt; dialogue if no flatten result after convert clip to paths." />
+	
+	
+	
+<filter
+   style="color-interpolation-filters:sRGB;"
+   inkscape:label="Roughen"
+   id="filter7"
+   x="-0.058242425"
+   y="-0.058242431"
+   width="1.1164848"
+   height="1.1164849"><feTurbulence
+     type="fractalNoise"
+     numOctaves="5"
+     seed="33"
+     baseFrequency="0.013 0.7"
+     result="turbulence"
+     id="feTurbulence7" /><feDisplacementMap
+     in="SourceGraphic"
+     in2="turbulence"
+     scale="11.2462"
+     yChannelSelector="G"
+     xChannelSelector="R"
+     id="feDisplacementMap7" /></filter><clipPath
+   clipPathUnits="userSpaceOnUse"
+   id="clipPath8"><rect
+     style="display:none;fill:#ffffff;stroke:#ffffff;stroke-width:4;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:8;stroke-dasharray:none;paint-order:stroke fill markers"
+     id="rect8"
+     width="40.495358"
+     height="15.826626"
+     x="3.8637772"
+     y="28.383902"
+     d="M 3.8637772,28.383902 H 44.359135 V 44.210527 H 3.8637772 Z" /><path
+     id="lpe_path-effect8"
+     style="fill:#ffffff;stroke:#ffffff;stroke-width:4;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:8;stroke-dasharray:none;paint-order:stroke fill markers"
+     class="powerclip"
+     d="M -0.16961481,-0.16961293 H 48.169612 V 48.169613 H -0.16961481 Z M 3.8637772,28.383902 V 44.210527 H 44.359135 V 28.383902 Z" /></clipPath></defs><sodipodi:namedview
+   id="namedview5"
+   pagecolor="#ffffff"
+   bordercolor="#999999"
+   borderopacity="1"
+   inkscape:showpageshadow="0"
+   inkscape:pageopacity="0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="13.458333"
+   inkscape:cx="24"
+   inkscape:cy="24"
+   inkscape:window-width="1440"
+   inkscape:window-height="847"
+   inkscape:window-x="680"
+   inkscape:window-y="1637"
+   inkscape:window-maximized="0"
+   inkscape:current-layer="Layer_1" />
+<ellipse
+   style="fill:#696969;stroke:#808080;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:8;stroke-dasharray:none;paint-order:stroke fill markers"
+   id="path5"
+   cx="24"
+   cy="24"
+   rx="17.169615"
+   ry="17.169613" /><g
+   id="zXDtGm_1_">
+</g>
+
+<path
+   style="fill:#696969;stroke:#808080;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:8;stroke-dasharray:none;paint-order:stroke fill markers;filter:url(#filter7)"
+   id="ellipse5"
+   clip-path="url(#clipPath8)"
+   inkscape:path-effect="#path-effect8"
+   sodipodi:type="arc"
+   sodipodi:cx="24"
+   sodipodi:cy="24"
+   sodipodi:rx="17.169615"
+   sodipodi:ry="17.169613"
+   d="M 41.169615,24 A 17.169615,17.169613 0 0 1 24,41.169613 17.169615,17.169613 0 0 1 6.8303852,24 17.169615,17.169613 0 0 1 24,6.8303871 17.169615,17.169613 0 0 1 41.169615,24 Z" /><g
+   id="g4">
+		<g
+   id="g3">
+			<line
+   fill="none"
+   stroke="#b2b2b2"
+   stroke-width="2"
+   stroke-miterlimit="10"
+   x1="4.1430001"
+   y1="28.454"
+   x2="4.8930001"
+   y2="28.454"
+   id="line1" />
+			
+				<line
+   fill="none"
+   stroke="#b2b2b2"
+   stroke-width="2"
+   stroke-miterlimit="10"
+   stroke-dasharray="1.5267, 1.5267"
+   x1="6.4190001"
+   y1="28.454"
+   x2="42.294998"
+   y2="28.454"
+   id="line2" />
+			<line
+   fill="none"
+   stroke="#b2b2b2"
+   stroke-width="2"
+   stroke-miterlimit="10"
+   x1="43.058998"
+   y1="28.454"
+   x2="43.808998"
+   y2="28.454"
+   id="line3" />
+		</g>
+	</g></svg>
