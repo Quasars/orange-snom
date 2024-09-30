@@ -1,44 +1,33 @@
 from AnyQt.QtWidgets import QFormLayout
 
-from Orange.data import Domain
-from Orange.preprocess import Preprocess
-
 from orangewidget.gui import comboBox
 
 from pySNOM.images import LineLevel
 
-from orangecontrib.spectroscopy.preprocess import SelectColumn, CommonDomain
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
+from orangecontrib.snom.preprocess.utils import (
+    PreprocessImageOpts2D,
+    CommonDomainImage2D,
+)
 
 
-class AddFeature(SelectColumn):
-    InheritEq = True
-
-
-class _LineLevelCommon(CommonDomain):
-    def __init__(self, method, domain):
-        super().__init__(domain)
+class _LineLevelCommon(CommonDomainImage2D):
+    def __init__(self, method, domain, image_opts):
+        super().__init__(domain, image_opts)
         self.method = method
 
-    def transformed(self, data):
-        # TODO figure out 1D to 2D properly
-        return LineLevel(method=self.method).transform(data.X)
+    def transform_image(self, image):
+        return LineLevel(method=self.method).transform(image)
 
 
-class LineLevelProcessor(Preprocess):
+class LineLevelProcessor(PreprocessImageOpts2D):
     def __init__(self, method="median"):
         self.method = method
 
-    def __call__(self, data):
-        common = _LineLevelCommon(self.method, data.domain)
-        atts = [
-            a.copy(compute_value=AddFeature(i, common))
-            for i, a in enumerate(data.domain.attributes)
-        ]
-        domain = Domain(atts, data.domain.class_vars, data.domain.metas)
-        return data.from_table(domain, data)
+    def image_transformer(self, data, image_opts):
+        return _LineLevelCommon(self.method, data.domain, image_opts)
 
 
 class LineLevelEditor(BaseEditorOrange):

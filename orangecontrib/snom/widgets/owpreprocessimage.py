@@ -6,6 +6,7 @@ from Orange.data import Domain, DiscreteVariable, ContinuousVariable
 from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.utils.itemmodels import DomainModel
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
+from orangecontrib.snom.preprocess.utils import PreprocessImageOpts
 from orangewidget import gui
 from orangewidget.settings import SettingProvider, ContextSetting, Setting
 
@@ -19,6 +20,7 @@ from orangecontrib.spectroscopy.widgets.owpreprocess import (
     GeneralPreprocess,
     create_preprocessor,
     InterruptException,
+    PreviewRunner,
 )
 
 from orangewidget.widget import Msg
@@ -67,6 +69,69 @@ class SpectralImagePreprocess(GeneralPreprocess, ImagePreviews, openclass=True):
         ImagePreviews.shutdown(self)
 
 
+def execute_with_image_opts(pp, data, image_opts):
+    if isinstance(pp, PreprocessImageOpts):
+        return pp(data, image_opts)
+    return pp(data)
+
+
+class ImagePreviewRunner(PreviewRunner):
+    def show_preview(self, show_info_anyway=False):
+        """Shows preview and also passes preview data to the widgets"""
+        master = self.master
+        self.preview_pos = master.flow_view.preview_n()
+        self.last_partial = None
+        self.show_info_anyway = show_info_anyway
+        self.preview_data = None
+        self.after_data = None
+        pp_def = [
+            master.preprocessormodel.item(i)
+            for i in range(master.preprocessormodel.rowCount())
+        ]
+        if master.data is not None:
+            data = master.sample_data(master.data)
+            image_opts = master.image_opts()
+            self.start(
+                self.run_preview,
+                data,
+                master.reference_data,
+                image_opts,
+                pp_def,
+                master.process_reference,
+            )
+        else:
+            master.curveplot.set_data(None)
+            master.curveplot_after.set_data(None)
+
+    @staticmethod
+    def run_preview(
+        data: Orange.data.Table,
+        reference: Orange.data.Table,
+        image_opts,
+        pp_def,
+        process_reference,
+        state,
+    ):
+        def progress_interrupt(i: float):
+            if state.is_interruption_requested():
+                raise InterruptException
+
+        n = len(pp_def)
+        orig_data = data
+        for i in range(n):
+            progress_interrupt(0)
+            state.set_partial_result((i, data, reference))
+            item = pp_def[i]
+            pp = create_preprocessor(item, reference)
+            data = execute_with_image_opts(pp, data, image_opts)
+            progress_interrupt(0)
+            if process_reference and reference is not None and i != n - 1:
+                reference = execute_with_image_opts(pp, reference, image_opts)
+        progress_interrupt(0)
+        state.set_partial_result((n, data, None))
+        return orig_data, data
+
+
 class OWPreprocessImage(SpectralImagePreprocess):
     name = "Preprocess image"
     id = "orangecontrib.snom.widgets.preprocessimage"
@@ -111,6 +176,8 @@ class OWPreprocessImage(SpectralImagePreprocess):
     def __init__(self):
         self.markings_list = []
         super().__init__()
+
+        self.preview_runner = ImagePreviewRunner(self)
 
         self.feature_value_model = DomainModel(
             order=(
@@ -173,10 +240,10 @@ class OWPreprocessImage(SpectralImagePreprocess):
         self.curveplot.attr_y = self.attr_y
         self.curveplot_after.attr_x = self.attr_x
         self.curveplot_after.attr_y = self.attr_y
-        self.redraw_data()
+        self.on_modelchanged()
 
     def update_feature_value(self):
-        self.redraw_data()
+        self.on_modelchanged()
 
     def redraw_data(self):
         self.curveplot.update_view()
@@ -197,8 +264,12 @@ class OWPreprocessImage(SpectralImagePreprocess):
         self.attr_x = self.xy_model[0] if self.xy_model else None
         self.attr_y = self.xy_model[1] if len(self.xy_model) >= 2 else self.attr_x
 
-    def show_preview(self, show_info_anyway=False):
-        super().show_preview(False)
+    def image_opts(self):
+        return {
+            'attr_x': str(self.attr_x),
+            'attr_y': str(self.attr_y),
+            'attr_value': str(self.attr_value),
+        }
 
     def create_outputs(self):
         self._reference_compat_warning()
@@ -206,10 +277,12 @@ class OWPreprocessImage(SpectralImagePreprocess):
             self.preprocessormodel.item(i)
             for i in range(self.preprocessormodel.rowCount())
         ]
+        image_opts = self.image_opts()
         self.start(
             self.run_task,
             self.data,
             self.reference_data,
+            image_opts,
             pp_def,
             self.process_reference,
         )
@@ -235,13 +308,13 @@ class OWPreprocessImage(SpectralImagePreprocess):
             # to generate valid interface even if context was not loaded
             self.contextAboutToBeOpened.emit([data])
 
-        self.curveplot.update_view()
-        self.curveplot_after.update_view()
+        self.redraw_data()
 
     @staticmethod
     def run_task(
         data: Orange.data.Table,
         reference: Orange.data.Table,
+        image_opts,
         pp_def,
         process_reference,
         state,
@@ -267,10 +340,10 @@ class OWPreprocessImage(SpectralImagePreprocess):
             pp = create_preprocessor(item, reference)
             plist.append(pp)
             if data is not None:
-                data = pp(data)
+                data = execute_with_image_opts(pp, data, image_opts)
             progress_interrupt((i / n + 0.5 / n) * 100)
             if process_reference and reference is not None and i != n - 1:
-                reference = pp(reference)
+                reference = execute_with_image_opts(pp, reference, image_opts)
         # if there are no preprocessors, return None instead of an empty list
         preprocessor = preprocess.preprocess.PreprocessorList(plist) if plist else None
         return data, preprocessor

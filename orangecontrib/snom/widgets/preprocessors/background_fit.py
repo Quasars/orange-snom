@@ -1,51 +1,37 @@
-# this is just an example of registration
-
 from AnyQt.QtWidgets import QFormLayout
-
-from Orange.data import Domain
-from Orange.preprocess import Preprocess
-
-# from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
-from orangecontrib.snom.widgets.preprocessors.utils import reshape_to_image
-
-from orangecontrib.spectroscopy.preprocess import SelectColumn, CommonDomain
 
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 from orangecontrib.spectroscopy.widgets.gui import lineEditIntRange
 
 from pySNOM.images import BackgroundPolyFit
-import numpy as np
+
+from orangecontrib.snom.preprocess.utils import (
+    PreprocessImageOpts2D,
+    CommonDomainImage2D,
+)
+from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 
 
-class AddFeature(SelectColumn):
-    InheritEq = True
-
-
-class _BackGroundFitCommon(CommonDomain):
-    def __init__(self, xorder, yorder, domain):
-        super().__init__(domain)
+class _BackGroundFitCommon(CommonDomainImage2D):
+    def __init__(self, xorder, yorder, domain, image_opts):
+        super().__init__(domain, image_opts)
         self.xorder = xorder
         self.yorder = yorder
 
-    def transformed(self, data):
-        im = reshape_to_image(data.X, data.metas[:, 0], data.metas[:, 1])
-        d, b = BackgroundPolyFit(xorder=self.xorder, yorder=self.yorder).transform(im)
-        return np.reshape(d, (-1, 1))
+    def transform_image(self, image):
+        d, b = BackgroundPolyFit(xorder=self.xorder, yorder=self.yorder).transform(
+            image
+        )
+        return d
 
 
-class BackGroundFit(Preprocess):
+class BackGroundFit(PreprocessImageOpts2D):
     def __init__(self, xorder=1, yorder=1):
         self.xorder = xorder
         self.yorder = yorder
 
-    def __call__(self, data):
-        common = _BackGroundFitCommon(self.xorder, self.yorder, data.domain)
-        atts = [
-            a.copy(compute_value=AddFeature(i, common))
-            for i, a in enumerate(data.domain.attributes)
-        ]
-        domain = Domain(atts, data.domain.class_vars, data.domain.metas)
-        return data.from_table(domain, data)
+    def image_transformer(self, data, image_opts):
+        return _BackGroundFitCommon(self.xorder, self.yorder, data.domain, image_opts)
 
 
 class BackGroundFitEditor(BaseEditorOrange):
@@ -84,4 +70,4 @@ class BackGroundFitEditor(BaseEditorOrange):
             pass  # TODO any settings
 
 
-# preprocess_image_editors.register(BackGroundFitEditor, 400)
+preprocess_image_editors.register(BackGroundFitEditor, 400)
