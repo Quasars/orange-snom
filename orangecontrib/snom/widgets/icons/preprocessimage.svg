@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg enable-background="new 0 0 48 48" version="1.1" viewBox="0 0 48 48" xml:space="preserve" xmlns="http://www.w3.org/2000/svg">
+	<rect x="4" y="24" width="40" height="20" fill="#696969" stroke-miterlimit="8" stroke-width="0" style="paint-order:stroke fill markers"/>
+
+	<rect x="4" y="4" width="2.5" height="2.5" fill="#d5d5d5" style="paint-order:stroke fill markers"/>
+	<rect x="4" y="4" width="2.5" height="2.5" fill="#4c4c4c" style="paint-order:stroke fill markers"/>
+	<rect x="4" y="6.5" width="2.5" height="2.5" fill="#bbb" style="paint-order:stroke fill markers"/>
+	<rect x="4" y="9" width="2.5" height="2.5" fill="#565656" style="paint-order:stroke fill markers"/>
+	<rect x="4" y="11.5" width="2.5" height="2.5" fill="#f7f7f7" style="paint-order:stroke fill markers"/>
+	<rect x="4" y="14" width="2.5" height="2.5" fill="#adadad" style="paint-order:stroke fill markers"/>
+	<rect x="4" y="16.5" width="2.5" height="2.5" fill="#7f7f7f" style="paint-order:stroke fill markers"/>
+	<rect x="4" y="19" width="2.5" height="2.5" fill="#e8e8e8" style="paint-order:stroke fill markers"/>
+	<rect x="4" y="21.5" width="2.5" height="2.5" fill="#6e6e6e" style="paint-order:stroke fill markers"/>
+
+	<rect x="6.5" y="4" width="2.5" height="2.5" fill="#2d2d2d" style="paint-order:stroke fill markers"/>
+	<rect x="6.5" y="6.5" width="2.5" height="2.5" fill="#999" style="paint-order:stroke fill markers"/>
+	<rect x="6.5" y="9" width="2.5" height="2.5" fill="#8f8f8f" style="paint-order:stroke fill markers"/>
+	<rect x="6.5" y="11.5" width="2.5" height="2.5" fill="#4e4e4e" style="paint-order:stroke fill markers"/>
+	<rect x="6.5" y="14" width="2.5" height="2.5" fill="#a0a0a0" style="paint-order:stroke fill markers"/>
+	<rect x="6.5" y="16.5" width="2.5" height="2.5" fill="#a4a4a4" style="paint-order:stroke fill markers"/>
+	<rect x="6.5" y="19" width="2.5" height="2.5" fill="#d3d3d3" style="paint-order:stroke fill markers"/>
+	<rect x="6.5" y="21.5" width="2.5" height="2.5" fill="#cbcbcb" style="paint-order:stroke fill markers"/>
+
+	<rect x="9" y="4" width="2.5" height="2.5" fill="#525252" style="paint-order:stroke fill markers"/>
+	<rect x="9" y="6.5" width="2.5" height="2.5" fill="#777" style="paint-order:stroke fill markers"/>
+	<rect x="9" y="9" width="2.5" height="2.5" fill="#d0d0d0" style="paint-order:stroke fill markers"/>
+	<rect x="9" y="11.5" width="2.5" height="2.5" fill="#e9e9e9" style="paint-order:stroke fill markers"/>
+	<rect x="9" y="14" width="2.5" height="2.5" fill="#aaa" style="paint-order:stroke fill markers"/>
+	<rect x="9" y="16.5" width="2.5" height="2.5" fill="#626262" style="paint-order:stroke fill markers"/>
+	<rect x="9" y="19" width="2.5" height="2.5" fill="#f5f5f5" style="paint-order:stroke fill markers"/>
+	<rect x="9" y="21.5" width="2.5" height="2.5" fill="#c6c6c6" style="paint-order:stroke fill markers"/>
+
+	<rect x="11.5" y="4" width="2.5" height="2.5" fill="#a6a6a6" style="paint-order:stroke fill markers"/>
+	<rect x="11.5" y="6.5" width="2.5" height="2.5" fill="#616161" style="paint-order:stroke fill markers"/>
+	<rect x="11.5" y="9" width="2.5" height="2.5" fill="#d6d6d6" style="paint-order:stroke fill markers"/>
+	<rect x="11.5" y="11.5" width="2.5" height="2.5" fill="#3c3c3c" style="paint-order:stroke fill markers"/>
+	<rect x="11.5" y="14" width="2.5" height="2.5" fill="#797979" style="paint-order:stroke fill markers"/>
+	<rect x="11.5" y="16.5" width="2.5" height="2.5" fill="#f6f6f6" style="paint-order:stroke fill markers"/>
+	<rect x="11.5" y="19" width="2.5" height="2.5" fill="#bababa" style="paint-order:stroke fill markers"/>
+	<rect x="11.5" y="21.5" width="2.5" height="2.5" fill="#474747" style="paint-order:stroke fill markers"/>
+
+	<rect x="14" y="4" width="2.5" height="2.5" fill="#3b3b3b" style="paint-order:stroke fill markers"/>
+	<rect x="14" y="6.5" width="2.5" height="2.5" fill="#484848" style="paint-order:stroke fill markers"/>
+	<rect x="14" y="9" width="2.5" height="2.5" fill="#4b4b4b" style="paint-order:stroke fill markers"/>
+	<rect x="14" y="11.5" width="2.5" height="2.5" fill="#bababa" style="paint-order:stroke fill markers"/>
+	<rect x="14" y="14" width="2.5" height="2.5" fill="#c7c7c7" style="paint-order:stroke fill markers"/>
+	<rect x="14" y="16.5" width="2.5" height="2.5" fill="#696969" style="paint-order:stroke fill markers"/>
+	<rect x="14" y="19" width="2.5" height="2.5" fill="#efefef" style="paint-order:stroke fill markers"/>
+	<rect x="14" y="21.5" width="2.5" height="2.5" fill="#b6b6b6" style="paint-order:stroke fill markers"/>
+
+	<rect x="16.5" y="4" width="2.5" height="2.5" fill="#7f7f7f" style="paint-order:stroke fill markers"/>
+	<rect x="16.5" y="6.5" width="2.5" height="2.5" fill="#202020" style="paint-order:stroke fill markers"/>
+	<rect x="16.5" y="9" width="2.5" height="2.5" fill="#9c9c9c" style="paint-order:stroke fill markers"/>
+	<rect x="16.5" y="11.5" width="2.5" height="2.5" fill="#868686" style="paint-order:stroke fill markers"/>
+	<rect x="16.5" y="14" width="2.5" height="2.5" fill="#b4b4b4" style="paint-order:stroke fill markers"/>
+	<rect x="16.5" y="16.5" width="2.5" height="2.5" fill="#f4f4f4" style="paint-order:stroke fill markers"/>
+	<rect x="16.5" y="19" width="2.5" height="2.5" fill="#6b6b6b" style="paint-order:stroke fill markers"/>
+	<rect x="16.5" y="21.5" width="2.5" height="2.5" fill="#7f7f7f" style="paint-order:stroke fill markers"/>
+
+	<rect x="19" y="4" width="2.5" height="2.5" fill="#f3f3f3" style="paint-order:stroke fill markers"/>
+	<rect x="19" y="6.5" width="2.5" height="2.5" fill="#5f5f5f" style="paint-order:stroke fill markers"/>
+	<rect x="19" y="9" width="2.5" height="2.5" fill="#e4e4e4" style="paint-order:stroke fill markers"/>
+	<rect x="19" y="11.5" width="2.5" height="2.5" fill="#787878" style="paint-order:stroke fill markers"/>
+	<rect x="19" y="14" width="2.5" height="2.5" fill="#9a9a9a" style="paint-order:stroke fill markers"/>
+	<rect x="19" y="16.5" width="2.5" height="2.5" fill="#aeaeae" style="paint-order:stroke fill markers"/>
+	<rect x="19" y="19" width="2.5" height="2.5" fill="#414141" style="paint-order:stroke fill markers"/>
+	<rect x="19" y="21.5" width="2.5" height="2.5" fill="#6c6c6c" style="paint-order:stroke fill markers"/>
+
+	<rect x="21.5" y="4" width="2.5" height="2.5" fill="#a0a0a0" style="paint-order:stroke fill markers"/>
+	<rect x="21.5" y="6.5" width="2.5" height="2.5" fill="#868686" style="paint-order:stroke fill markers"/>
+	<rect x="21.5" y="9" width="2.5" height="2.5" fill="#6b6b6b" style="paint-order:stroke fill markers"/>
+	<rect x="21.5" y="11.5" width="2.5" height="2.5" fill="#ededed" style="paint-order:stroke fill markers"/>
+	<rect x="21.5" y="14" width="2.5" height="2.5" fill="#797979" style="paint-order:stroke fill markers"/>
+	<rect x="21.5" y="16.5" width="2.5" height="2.5" fill="#aaa" style="paint-order:stroke fill markers"/>
+	<rect x="21.5" y="19" width="2.5" height="2.5" fill="#5b5b5b" style="paint-order:stroke fill markers"/>
+	<rect x="21.5" y="21.5" width="2.5" height="2.5" fill="#a0a0a0" style="paint-order:stroke fill markers"/>
+
+	<rect x="24" y="4" width="2.5" height="2.5" fill="#d6d6d6" style="paint-order:stroke fill markers"/>
+	<rect x="24" y="6.5" width="2.5" height="2.5" fill="#d7d7d7" style="paint-order:stroke fill markers"/>
+	<rect x="24" y="9" width="2.5" height="2.5" fill="#b1b1b1" style="paint-order:stroke fill markers"/>
+	<rect x="24" y="11.5" width="2.5" height="2.5" fill="#818181" style="paint-order:stroke fill markers"/>
+	<rect x="24" y="14" width="2.5" height="2.5" fill="#8a8a8a" style="paint-order:stroke fill markers"/>
+	<rect x="24" y="16.5" width="2.5" height="2.5" fill="#a9a9a9" style="paint-order:stroke fill markers"/>
+	<rect x="24" y="19" width="2.5" height="2.5" fill="#999" style="paint-order:stroke fill markers"/>
+	<rect x="24" y="21.5" width="2.5" height="2.5" fill="#3e3e3e" style="paint-order:stroke fill markers"/>
+
+	<rect x="26.5" y="4" width="2.5" height="2.5" fill="#5a5a5a" style="paint-order:stroke fill markers"/>
+	<rect x="26.5" y="6.5" width="2.5" height="2.5" fill="#9d9d9d" style="paint-order:stroke fill markers"/>
+	<rect x="26.5" y="9" width="2.5" height="2.5" fill="#6f6f6f" style="paint-order:stroke fill markers"/>
+	<rect x="26.5" y="11.5" width="2.5" height="2.5" fill="#919191" style="paint-order:stroke fill markers"/>
+	<rect x="26.5" y="14" width="2.5" height="2.5" fill="#8a8a8a" style="paint-order:stroke fill markers"/>
+	<rect x="26.5" y="16.5" width="2.5" height="2.5" fill="#595959" style="paint-order:stroke fill markers"/>
+	<rect x="26.5" y="19" width="2.5" height="2.5" fill="#484848" style="paint-order:stroke fill markers"/>
+	<rect x="26.5" y="21.5" width="2.5" height="2.5" fill="#838383" style="paint-order:stroke fill markers"/>
+
+	<rect x="29" y="4" width="2.5" height="2.5" fill="#7d7d7d" style="paint-order:stroke fill markers"/>
+	<rect x="29" y="6.5" width="2.5" height="2.5" fill="#c9c9c9" style="paint-order:stroke fill markers"/>
+	<rect x="29" y="9" width="2.5" height="2.5" fill="#343434" style="paint-order:stroke fill markers"/>
+	<rect x="29" y="11.5" width="2.5" height="2.5" fill="#404040" style="paint-order:stroke fill markers"/>
+	<rect x="29" y="14" width="2.5" height="2.5" fill="#bebebe" style="paint-order:stroke fill markers"/>
+	<rect x="29" y="16.5" width="2.5" height="2.5" fill="#4a4a4a" style="paint-order:stroke fill markers"/>
+	<rect x="29" y="19" width="2.5" height="2.5" fill="#e4e4e4" style="paint-order:stroke fill markers"/>
+	<rect x="29" y="21.5" width="2.5" height="2.5" fill="#898989" style="paint-order:stroke fill markers"/>
+
+	<rect x="31.5" y="4" width="2.5" height="2.5" fill="#828282" style="paint-order:stroke fill markers"/>
+	<rect x="31.5" y="6.5" width="2.5" height="2.5" fill="#4a4a4a" style="paint-order:stroke fill markers"/>
+	<rect x="31.5" y="9" width="2.5" height="2.5" fill="#494949" style="paint-order:stroke fill markers"/>
+	<rect x="31.5" y="11.5" width="2.5" height="2.5" fill="#0d0d0d" style="paint-order:stroke fill markers"/>
+	<rect x="31.5" y="14" width="2.5" height="2.5" fill="#7d7d7d" style="paint-order:stroke fill markers"/>
+	<rect x="31.5" y="16.5" width="2.5" height="2.5" fill="#878787" style="paint-order:stroke fill markers"/>
+	<rect x="31.5" y="19" width="2.5" height="2.5" fill="#bfbfbf" style="paint-order:stroke fill markers"/>
+	<rect x="31.5" y="21.5" width="2.5" height="2.5" fill="#5c5c5c" style="paint-order:stroke fill markers"/>
+
+	<rect x="34" y="4" width="2.5" height="2.5" fill="#646464" style="paint-order:stroke fill markers"/>
+	<rect x="34" y="6.5" width="2.5" height="2.5" fill="#efefef" style="paint-order:stroke fill markers"/>
+	<rect x="34" y="9" width="2.5" height="2.5" fill="#7c7c7c" style="paint-order:stroke fill markers"/>
+	<rect x="34" y="11.5" width="2.5" height="2.5" fill="#565656" style="paint-order:stroke fill markers"/>
+	<rect x="34" y="14" width="2.5" height="2.5" fill="#545454" style="paint-order:stroke fill markers"/>
+	<rect x="34" y="16.5" width="2.5" height="2.5" fill="#dadada" style="paint-order:stroke fill markers"/>
+	<rect x="34" y="19" width="2.5" height="2.5" fill="#7a7a7a" style="paint-order:stroke fill markers"/>
+	<rect x="34" y="21.5" width="2.5" height="2.5" fill="#474747" style="paint-order:stroke fill markers"/>
+
+	<rect x="36.5" y="4" width="2.5" height="2.5" fill="#bababa" style="paint-order:stroke fill markers"/>
+	<rect x="36.5" y="6.5" width="2.5" height="2.5" fill="#454545" style="paint-order:stroke fill markers"/>
+	<rect x="36.5" y="9" width="2.5" height="2.5" fill="#9b9b9b" style="paint-order:stroke fill markers"/>
+	<rect x="36.5" y="11.5" width="2.5" height="2.5" fill="#fbfbfb" style="paint-order:stroke fill markers"/>
+	<rect x="36.5" y="14" width="2.5" height="2.5" fill="#b7b7b7" style="paint-order:stroke fill markers"/>
+	<rect x="36.5" y="16.5" width="2.5" height="2.5" fill="#a3a3a3" style="paint-order:stroke fill markers"/>
+	<rect x="36.5" y="19" width="2.5" height="2.5" fill="#6a6a6a" style="paint-order:stroke fill markers"/>
+	<rect x="36.5" y="21.5" width="2.5" height="2.5" fill="#303030" style="paint-order:stroke fill markers"/>
+
+	<rect x="39" y="4" width="2.5" height="2.5" fill="#c5c5c5" style="paint-order:stroke fill markers"/>
+	<rect x="39" y="6.5" width="2.5" height="2.5" fill="#3a3a3a" style="paint-order:stroke fill markers"/>
+	<rect x="39" y="9" width="2.5" height="2.5" fill="#fcfcfc" style="paint-order:stroke fill markers"/>
+	<rect x="39" y="11.5" width="2.5" height="2.5" fill="#4b4b4b" style="paint-order:stroke fill markers"/>
+	<rect x="39" y="14" width="2.5" height="2.5" fill="#c5c5c5" style="paint-order:stroke fill markers"/>
+	<rect x="39" y="16.5" width="2.5" height="2.5" fill="#fafafa" style="paint-order:stroke fill markers"/>
+	<rect x="39" y="19" width="2.5" height="2.5" fill="#939393" style="paint-order:stroke fill markers"/>
+	<rect x="39" y="21.5" width="2.5" height="2.5" fill="#2a2a2a" style="paint-order:stroke fill markers"/>
+
+	<rect x="41.5" y="4" width="2.5" height="2.5" fill="#d4d4d4" style="paint-order:stroke fill markers"/>
+	<rect x="41.5" y="6.5" width="2.5" height="2.5" fill="#787878" style="paint-order:stroke fill markers"/>
+	<rect x="41.5" y="9" width="2.5" height="2.5" fill="#444" style="paint-order:stroke fill markers"/>
+	<rect x="41.5" y="11.5" width="2.5" height="2.5" fill="#bababa" style="paint-order:stroke fill markers"/>
+	<rect x="41.5" y="14" width="2.5" height="2.5" fill="#030303" style="paint-order:stroke fill markers"/>
+	<rect x="41.5" y="16.5" width="2.5" height="2.5" fill="#cbcbcb" style="paint-order:stroke fill markers"/>
+	<rect x="41.5" y="19" width="2.5" height="2.5" fill="#6b6b6b" style="paint-order:stroke fill markers"/>
+	<rect x="41.5" y="21.5" width="2.5" height="2.5" fill="#4e4e4e" style="paint-order:stroke fill markers"/>
+
+	<g transform="matrix(1.0084 0 0 1 -.17789 -4.454)" fill="none" stroke="#fff">
+		<g fill="none" stroke="#fff" stroke-miterlimit="10" stroke-width="2">
+			<line x1="4.143" x2="4.893" y1="28.454" y2="28.454"/>
+				<line x1="6.419" x2="42.295" y1="28.454" y2="28.454" stroke-dasharray="1.5267, 1.5267"/>
+				<line x1="43.059" x2="43.809" y1="28.454" y2="28.454"/>
+		</g>
+	</g>
+</svg>
