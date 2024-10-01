@@ -8,26 +8,16 @@ from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOra
 
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 from orangecontrib.snom.preprocess.utils import (
-    PreprocessImageOpts2D,
-    CommonDomainImage2D,
+    PreprocessImageOpts2DOnlyWhole,
 )
 
 
-class _LineLevelCommon(CommonDomainImage2D):
-    def __init__(self, method, domain, image_opts):
-        super().__init__(domain, image_opts)
+class LineLevelProcessor(PreprocessImageOpts2DOnlyWhole):
+    def __init__(self, method="median"):
         self.method = method
 
     def transform_image(self, image):
         return LineLevel(method=self.method).transform(image)
-
-
-class LineLevelProcessor(PreprocessImageOpts2D):
-    def __init__(self, method="median"):
-        self.method = method
-
-    def image_transformer(self, data, image_opts):
-        return _LineLevelCommon(self.method, data.domain, image_opts)
 
 
 class LineLevelEditor(BaseEditorOrange):

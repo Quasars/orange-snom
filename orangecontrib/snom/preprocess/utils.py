@@ -27,6 +27,38 @@ class PreprocessImageOpts2D(PreprocessImageOpts):
         raise NotImplementedError
 
 
+class NoComputeValue:
+    def __call__(self, data):
+        return np.full(len(data), np.nan)
+
+
+class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
+    def __call__(self, data, image_opts):
+        at = data.domain[image_opts["attr_value"]].copy(compute_value=NoComputeValue())
+        odata = data
+        domain = domain_with_single_attribute_in_x(at, data.domain)
+        data = data.transform(domain)
+        if len(data):
+            with data.unlocked(data.X):
+                data.X[:, 0] = odata.get_column(image_opts["attr_value"], copy=True)
+        try:
+            hypercube, _, indices = get_ndim_hyperspec(
+                data, (image_opts["attr_x"], image_opts["attr_y"])
+            )
+            image = hypercube[:, :, 0]
+            transformed = self.transform_image(image)
+            col = transformed[indices].reshape(-1)
+        except InvalidAxisException:
+            col = np.full(len(data), np.nan)
+        if len(data):
+            with data.unlocked(data.X):
+                data.X[:, 0] = col
+        return data
+
+    def transform_image(self, image):
+        raise NotImplementedError
+
+
 def axes_to_ndim_linspace(coordinates):
     # modified to avoid domains as much as possible
     ls = []
