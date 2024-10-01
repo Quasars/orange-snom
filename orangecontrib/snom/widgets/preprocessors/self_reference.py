@@ -16,14 +16,15 @@ import numpy as np
 
 class SelfRef(PreprocessImageOpts2DOnlyWhole):
     def __init__(self, reference):
-        self.reference = reference.X
+        self.reference = reference
 
     def transform_image(self, image):
-        ref = (np.reshape(self.reference,np.shape(image)))
-        d = SelfReference(referencedata=ref).transform(
-            image
-        )
-        return d
+        try:
+            ref = np.reshape(self.reference.X, np.shape(image))
+            d = SelfReference(referencedata=ref).transform(image)
+            return d
+        except:
+            return image
 
 
 class SelfRefEditor(BaseEditorOrange):
