@@ -43,7 +43,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
                 data.X[:, 0] = odata.get_column(image_opts["attr_value"], copy=True)
         try:
             hypercube, _, indices = get_ndim_hyperspec(
-                data, (image_opts["attr_x"], image_opts["attr_y"])
+                data, (image_opts["attr_y"], image_opts["attr_x"])
             )
             image = hypercube[:, :, 0]
             transformed = self.transform_image(image)
@@ -56,6 +56,9 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
         return data
 
     def transform_image(self, image):
+        """
+        image: a numpy 2D array where image[y,x] is the value in image row y and column x
+        """
         raise NotImplementedError
 
 
@@ -113,7 +116,7 @@ class CommonDomainImage2D(CommonDomain):
         data = data.transform(ndom)
         try:
             hypercube, _, indices = get_ndim_hyperspec(
-                data, (self.image_opts["attr_x"], self.image_opts["attr_y"])
+                data, (self.image_opts["attr_y"], self.image_opts["attr_x"])
             )
             image = hypercube[:, :, 0]
             transformed = self.transform_image(image)
@@ -123,4 +126,7 @@ class CommonDomainImage2D(CommonDomain):
         return self.transformed(data)
 
     def transform_image(self, image):
+        """
+        image: a numpy 2D array where image[y,x] is the value in image row y and column x
+        """
         raise NotImplementedError
