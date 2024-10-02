@@ -2,7 +2,11 @@ import numpy as np
 
 from Orange.data import Domain
 from Orange.preprocess import Preprocess
-from orangecontrib.spectroscopy.preprocess import CommonDomain, SelectColumn
+from orangecontrib.spectroscopy.preprocess import (
+    CommonDomain,
+    SelectColumn,
+    WrongReferenceException,
+)
 from orangecontrib.spectroscopy.utils import (
     InvalidAxisException,
     values_to_linspace,
@@ -32,21 +36,34 @@ class NoComputeValue:
         return np.full(len(data), np.nan)
 
 
+def _prepare_domain_for_image(data, image_opts):
+    at = data.domain[image_opts["attr_value"]].copy(compute_value=NoComputeValue())
+    return domain_with_single_attribute_in_x(at, data.domain)
+
+
+def _prepare_table_for_image(data, image_opts):
+    odata = data
+    domain = _prepare_domain_for_image(data, image_opts)
+    data = data.transform(domain)
+    if len(data):
+        with data.unlocked(data.X):
+            data.X[:, 0] = odata.get_column(image_opts["attr_value"], copy=True)
+    return data
+
+
+def _image_from_table(data, image_opts):
+    hypercube, _, indices = get_ndim_hyperspec(
+        data, (image_opts["attr_y"], image_opts["attr_x"])
+    )
+    return hypercube[:, :, 0], indices
+
+
 class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
     def __call__(self, data, image_opts):
-        at = data.domain[image_opts["attr_value"]].copy(compute_value=NoComputeValue())
-        odata = data
-        domain = domain_with_single_attribute_in_x(at, data.domain)
-        data = data.transform(domain)
-        if len(data):
-            with data.unlocked(data.X):
-                data.X[:, 0] = odata.get_column(image_opts["attr_value"], copy=True)
+        data = _prepare_table_for_image(data, image_opts)
         try:
-            hypercube, _, indices = get_ndim_hyperspec(
-                data, (image_opts["attr_y"], image_opts["attr_x"])
-            )
-            image = hypercube[:, :, 0]
-            transformed = self.transform_image(image, odata)
+            image, indices = _image_from_table(data, image_opts)
+            transformed = self.transform_image(image, data)
             col = transformed[indices].reshape(-1)
         except InvalidAxisException:
             col = np.full(len(data), np.nan)
@@ -58,7 +75,34 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
     def transform_image(self, image, data):
         """
         image: a numpy 2D array where image[y,x] is the value in image row y and column x
-        data: original data set (used for passing meta data)
+        data: image data set (used for passing meta data)
+        """
+        raise NotImplementedError
+
+
+class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
+    def __call__(self, data, image_opts):
+        data = _prepare_table_for_image(data, image_opts)
+        reference = _prepare_table_for_image(self.reference, image_opts)
+        try:
+            image, indices = _image_from_table(data, image_opts)
+            ref_image, _ = _image_from_table(reference, image_opts)
+            if image.shape != ref_image.shape:
+                raise WrongReferenceException("Reference data should have length 1")
+            transformed = self.transform_image(image, ref_image, data)
+            col = transformed[indices].reshape(-1)
+        except InvalidAxisException:
+            col = np.full(len(data), np.nan)
+        if len(data):
+            with data.unlocked(data.X):
+                data.X[:, 0] = col
+        return data
+
+    def transform_image(self, image, ref_image, data):
+        """
+        image: a numpy 2D array where image[y,x] is the value in image row y and column x
+        ref_image: a numpy 2D array where image[y,x] is the value in image row y and column x
+        data: image data set (used for passing meta data)
         """
         raise NotImplementedError
 

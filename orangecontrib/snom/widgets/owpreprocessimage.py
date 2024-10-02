@@ -12,7 +12,7 @@ from orangewidget.settings import SettingProvider, ContextSetting, Setting
 
 import Orange.data
 from Orange import preprocess
-from Orange.widgets.widget import Output
+from Orange.widgets.widget import Output, Input
 
 from orangecontrib.spectroscopy.widgets.owhyper import BasicImagePlot
 
@@ -132,7 +132,16 @@ class ImagePreviewRunner(PreviewRunner):
         return orig_data, data
 
 
-class OWPreprocessImage(SpectralImagePreprocess):
+class SpectralImagePreprocessReference(SpectralImagePreprocess, openclass=True):
+    class Inputs(SpectralImagePreprocess.Inputs):
+        reference = Input("Reference", Orange.data.Table)
+
+    @Inputs.reference
+    def set_reference(self, reference):
+        self.reference_data = reference
+
+
+class OWPreprocessImage(SpectralImagePreprocessReference):
     name = "Preprocess image"
     id = "orangecontrib.snom.widgets.preprocessimage"
     description = "Process image"
