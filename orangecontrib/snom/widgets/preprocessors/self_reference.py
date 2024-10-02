@@ -1,5 +1,6 @@
 from AnyQt.QtWidgets import QFormLayout, QLabel
 
+from orangecontrib.spectroscopy.preprocess import MissingReferenceException
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import (
     BaseEditorOrange,
     REFERENCE_DATA_PARAM,
@@ -8,23 +9,20 @@ from orangecontrib.spectroscopy.widgets.preprocessors.utils import (
 from pySNOM.images import SelfReference
 
 from orangecontrib.snom.preprocess.utils import (
-    PreprocessImageOpts2DOnlyWhole,
+    PreprocessImageOpts2DOnlyWholeReference,
 )
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
-import numpy as np
 
 
-class SelfRef(PreprocessImageOpts2DOnlyWhole):
+class SelfRef(PreprocessImageOpts2DOnlyWholeReference):
     def __init__(self, reference):
         self.reference = reference
+        if self.reference is None:
+            raise MissingReferenceException("Self-referencing needs a reference")
 
-    def transform_image(self, image, data):
-        try:
-            ref = np.reshape(self.reference.X, np.shape(image))
-            d = SelfReference(referencedata=ref).transform(image)
-            return d
-        except:
-            return image
+    def transform_image(self, image, ref_image, data):
+        d = SelfReference(referencedata=ref_image).transform(image)
+        return d
 
 
 class SelfRefEditor(BaseEditorOrange):
