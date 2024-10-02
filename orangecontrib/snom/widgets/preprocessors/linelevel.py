@@ -2,7 +2,7 @@ from AnyQt.QtWidgets import QFormLayout
 
 from orangewidget.gui import comboBox
 
-from pySNOM.images import LineLevel
+from pySNOM.images import LineLevel, DataTypes
 
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 
@@ -17,7 +17,13 @@ class LineLevelProcessor(PreprocessImageOpts2DOnlyWhole):
         self.method = method
 
     def transform_image(self, image, data):
-        return LineLevel(method=self.method).transform(image)
+        if "datatype" in data.attributes:
+            datatype = data.attributes["datatype"]
+            return LineLevel(
+                method=self.method, datatype=DataTypes[datatype]
+            ).transform(image)
+        else:
+            return LineLevel(method=self.method).transform(image)
 
 
 class LineLevelEditor(BaseEditorOrange):
@@ -30,22 +36,26 @@ class LineLevelEditor(BaseEditorOrange):
         self.method = 'median'
 
         form = QFormLayout()
-        levelmethod = comboBox(self, self, "method", callback=self.edited.emit)
-        levelmethod.addItems(['median', 'mean', 'difference'])
-        form.addRow("Leveling method", levelmethod)
+        self.levelmethod_cb = comboBox(self, self, "method", callback=self.setmethod)
+        self.levelmethod_cb.addItems(['median', 'mean', 'difference'])
+        form.addRow("Leveling method", self.levelmethod_cb)
         self.controlArea.setLayout(form)
 
     def activateOptions(self):
         pass  # actions when user starts changing options
 
+    def setmethod(self):
+        self.method = self.levelmethod_cb.currentText()
+        self.edited.emit()
+
     def setParameters(self, params):
-        self.levelmethod = params.get("levelmethod", "median")
+        self.method = params.get("method", "median")
 
     @classmethod
     def createinstance(cls, params):
         params = dict(params)
-        levelmethod = params.get("levelmethod", "median")
-        return LineLevelProcessor(method=levelmethod)
+        method = params.get("method", "median")
+        return LineLevelProcessor(method=method)
 
     def set_preview_data(self, data):
         if data:

@@ -3,7 +3,7 @@ from AnyQt.QtWidgets import QFormLayout
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 from orangecontrib.spectroscopy.widgets.gui import lineEditIntRange
 
-from pySNOM.images import BackgroundPolyFit
+from pySNOM.images import BackgroundPolyFit, DataTypes
 
 from orangecontrib.snom.preprocess.utils import (
     PreprocessImageOpts2DOnlyWhole,
@@ -17,10 +17,14 @@ class BackGroundFit(PreprocessImageOpts2DOnlyWhole):
         self.yorder = yorder
 
     def transform_image(self, image, data):
-        d, b = BackgroundPolyFit(xorder=self.xorder, yorder=self.yorder).transform(
-            image
-        )
-        return d
+        if "datatype" in data.attributes:
+            datatype = data.attributes["datatype"]
+            d, b = BackgroundPolyFit(
+                xorder=self.xorder, yorder=self.yorder, datatype=DataTypes[datatype]
+            ).transform(image)
+            return d
+        else:
+            return image
 
 
 class BackGroundFitEditor(BaseEditorOrange):
