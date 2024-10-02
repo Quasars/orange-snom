@@ -6,32 +6,21 @@ from orangecontrib.spectroscopy.widgets.gui import lineEditIntRange
 from pySNOM.images import BackgroundPolyFit
 
 from orangecontrib.snom.preprocess.utils import (
-    PreprocessImageOpts2D,
-    CommonDomainImage2D,
+    PreprocessImageOpts2DOnlyWhole,
 )
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 
 
-class _BackGroundFitCommon(CommonDomainImage2D):
-    def __init__(self, xorder, yorder, domain, image_opts):
-        super().__init__(domain, image_opts)
-        self.xorder = xorder
-        self.yorder = yorder
-
-    def transform_image(self, image):
-        d, b = BackgroundPolyFit(xorder=self.xorder, yorder=self.yorder).transform(
-            image
-        )
-        return d
-
-
-class BackGroundFit(PreprocessImageOpts2D):
+class BackGroundFit(PreprocessImageOpts2DOnlyWhole):
     def __init__(self, xorder=1, yorder=1):
         self.xorder = xorder
         self.yorder = yorder
 
-    def image_transformer(self, data, image_opts):
-        return _BackGroundFitCommon(self.xorder, self.yorder, data.domain, image_opts)
+    def transform_image(self, image, data):
+        d, b = BackgroundPolyFit(xorder=self.xorder, yorder=self.yorder).transform(
+            image
+        )
+        return d
 
 
 class BackGroundFitEditor(BaseEditorOrange):
