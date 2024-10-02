@@ -16,7 +16,7 @@ class BackGroundFit(PreprocessImageOpts2DOnlyWhole):
         self.xorder = xorder
         self.yorder = yorder
 
-    def transform_image(self, image):
+    def transform_image(self, image, data):
         d, b = BackgroundPolyFit(xorder=self.xorder, yorder=self.yorder).transform(
             image
         )

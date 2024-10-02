@@ -16,7 +16,7 @@ class LineLevelProcessor(PreprocessImageOpts2DOnlyWhole):
     def __init__(self, method="median"):
         self.method = method
 
-    def transform_image(self, image):
+    def transform_image(self, image, data):
         return LineLevel(method=self.method).transform(image)
 
 

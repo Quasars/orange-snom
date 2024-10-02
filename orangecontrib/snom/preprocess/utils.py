@@ -46,7 +46,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
                 data, (image_opts["attr_y"], image_opts["attr_x"])
             )
             image = hypercube[:, :, 0]
-            transformed = self.transform_image(image)
+            transformed = self.transform_image(image, odata)
             col = transformed[indices].reshape(-1)
         except InvalidAxisException:
             col = np.full(len(data), np.nan)
@@ -55,9 +55,10 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
                 data.X[:, 0] = col
         return data
 
-    def transform_image(self, image):
+    def transform_image(self, image, data):
         """
         image: a numpy 2D array where image[y,x] is the value in image row y and column x
+        data: original data set (used for passing meta data)
         """
         raise NotImplementedError
 
