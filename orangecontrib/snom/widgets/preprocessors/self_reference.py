@@ -18,7 +18,7 @@ class SelfRef(PreprocessImageOpts2DOnlyWhole):
     def __init__(self, reference):
         self.reference = reference
 
-    def transform_image(self, image):
+    def transform_image(self, image, data):
         try:
             ref = np.reshape(self.reference.X, np.shape(image))
             d = SelfReference(referencedata=ref).transform(image)
