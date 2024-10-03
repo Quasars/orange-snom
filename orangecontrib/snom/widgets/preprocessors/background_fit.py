@@ -17,14 +17,11 @@ class BackGroundFit(PreprocessImageOpts2DOnlyWhole):
         self.yorder = yorder
 
     def transform_image(self, image, data):
-        if "datatype" in data.attributes:
-            datatype = data.attributes["datatype"]
-            d, b = BackgroundPolyFit(
-                xorder=self.xorder, yorder=self.yorder, datatype=DataTypes[datatype]
-            ).transform(image)
-            return d
-        else:
-            return image
+        datatype = data.attributes.get("measurement.signaltype", "Phase")
+        d, b = BackgroundPolyFit(
+            xorder=self.xorder, yorder=self.yorder, datatype=DataTypes[datatype]
+        ).transform(image)
+        return d
 
 
 class BackGroundFitEditor(BaseEditorOrange):

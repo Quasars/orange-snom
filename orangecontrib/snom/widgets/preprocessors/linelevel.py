@@ -17,13 +17,10 @@ class LineLevelProcessor(PreprocessImageOpts2DOnlyWhole):
         self.method = method
 
     def transform_image(self, image, data):
-        if "datatype" in data.attributes:
-            datatype = data.attributes["datatype"]
-            return LineLevel(
-                method=self.method, datatype=DataTypes[datatype]
-            ).transform(image)
-        else:
-            return LineLevel(method=self.method).transform(image)
+        datatype = data.attributes.get("measurement.signaltype", "Phase")
+        return LineLevel(
+            method=self.method, datatype=DataTypes[datatype]
+        ).transform(image)
 
 
 class LineLevelEditor(BaseEditorOrange):

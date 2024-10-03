@@ -18,15 +18,10 @@ class SimpleNorm(PreprocessImageOpts2DOnlyWhole):
         self.value = value
 
     def transform_image(self, image, data):
-        if "datatype" in data.attributes:
-            datatype = data.attributes["datatype"]
-            return SimpleNormalize(
-                method=self.method, value=self.value, datatype=DataTypes[datatype]
-            ).transform(image)
-        else:
-            return SimpleNormalize(method=self.method, value=self.value).transform(
-                image
-            )
+        datatype = data.attributes.get("measurement.signaltype", "Phase")
+        return SimpleNormalize(
+            method=self.method, value=self.value, datatype=DataTypes[datatype]
+        ).transform(image)
 
 
 class SimpleNormEditor(BaseEditorOrange):
