@@ -6,7 +6,7 @@ from orangecontrib.spectroscopy.widgets.preprocessors.utils import (
     REFERENCE_DATA_PARAM,
 )
 
-from pySNOM.images import SelfReference
+from pySNOM.images import SelfReference, DataTypes
 
 from orangecontrib.snom.preprocess.utils import (
     PreprocessImageOpts2DOnlyWholeReference,
@@ -21,8 +21,10 @@ class SelfRef(PreprocessImageOpts2DOnlyWholeReference):
             raise MissingReferenceException("Self-referencing needs a reference")
 
     def transform_image(self, image, ref_image, data):
-        d = SelfReference(referencedata=ref_image).transform(image)
-        return d
+        datatype = data.attributes.get("measurement.signaltype", "Phase")
+        return SelfReference(
+            referencedata=ref_image, datatype=DataTypes[datatype]
+        ).transform(image)
 
 
 class SelfRefEditor(BaseEditorOrange):

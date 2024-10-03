@@ -1,46 +1,27 @@
 from AnyQt.QtWidgets import QFormLayout
 
-from Orange.data import Domain
-from Orange.preprocess import Preprocess
-from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
-
-from orangecontrib.spectroscopy.preprocess import SelectColumn, CommonDomain
-
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 from orangecontrib.spectroscopy.widgets.gui import lineEditFloatRange
 from orangewidget.gui import comboBox
 
-from pySNOM.images import SimpleNormalize
+from pySNOM.images import SimpleNormalize, DataTypes
+
+from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
+from orangecontrib.snom.preprocess.utils import (
+    PreprocessImageOpts2DOnlyWhole,
+)
 
 
-class AddFeature(SelectColumn):
-    InheritEq = True
-
-
-class _SimpleNormCommon(CommonDomain):
-    def __init__(self, method, value, domain):
-        super().__init__(domain)
-        self.method = method
-        self.value = value
-        # print(value,method)
-
-    def transformed(self, data):
-        return SimpleNormalize(method=self.method, value=self.value).transform(data.X)
-
-
-class SimpleNorm(Preprocess):
-    def __init__(self, method='median', value=1.0):
+class SimpleNorm(PreprocessImageOpts2DOnlyWhole):
+    def __init__(self, method, value):
         self.method = method
         self.value = value
 
-    def __call__(self, data):
-        common = _SimpleNormCommon(self.method, self.value, data.domain)
-        atts = [
-            a.copy(compute_value=AddFeature(i, common))
-            for i, a in enumerate(data.domain.attributes)
-        ]
-        domain = Domain(atts, data.domain.class_vars, data.domain.metas)
-        return data.from_table(domain, data)
+    def transform_image(self, image, data):
+        datatype = data.attributes.get("measurement.signaltype", "Phase")
+        return SimpleNormalize(
+            method=self.method, value=self.value, datatype=DataTypes[datatype]
+        ).transform(image)
 
 
 class SimpleNormEditor(BaseEditorOrange):
