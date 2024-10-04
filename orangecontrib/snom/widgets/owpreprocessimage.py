@@ -297,6 +297,9 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
         )
 
     def set_data(self, data):
+        self.curveplot.set_data(None)
+        self.curveplot_after.set_data(None)
+
         super().set_data(data)
 
         self.closeContext()
