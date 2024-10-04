@@ -153,7 +153,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
     settingsHandler = DomainContextHandler()
 
     _max_preview_spectra = 1000000
-    preview_curves = Setting(10000)
+    preview_curves = Setting(100000)
 
     editor_registry = preprocess_image_editors
     BUTTON_ADD_LABEL = "Add preprocessor..."
