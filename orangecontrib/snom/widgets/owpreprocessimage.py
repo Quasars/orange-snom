@@ -317,7 +317,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
             # to generate valid interface even if context was not loaded
             self.contextAboutToBeOpened.emit([data])
 
-        self.redraw_data()
+        self.update_attr()  # update imageplots attributes from the master
 
     @staticmethod
     def run_task(
