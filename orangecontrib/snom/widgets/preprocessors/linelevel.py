@@ -1,3 +1,4 @@
+import numpy as np
 from AnyQt.QtWidgets import QFormLayout
 
 from orangewidget.gui import comboBox
@@ -18,9 +19,13 @@ class LineLevelProcessor(PreprocessImageOpts2DOnlyWhole):
 
     def transform_image(self, image, data):
         datatype = data.attributes.get("measurement.signaltype", "Phase")
-        return LineLevel(method=self.method, datatype=DataTypes[datatype]).transform(
-            image
-        )
+        processed = LineLevel(
+            method=self.method, datatype=DataTypes[datatype]
+        ).transform(image)
+        if self.method == 'difference':
+            # add a row of NaN, so that the size matches
+            processed = np.vstack((processed, np.full((1, image.shape[1]), np.nan)))
+        return processed
 
 
 class LineLevelEditor(BaseEditorOrange):
