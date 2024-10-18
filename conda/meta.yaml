@@ -1,0 +1,43 @@
+{% set version = "0.0.4" %}
+
+package:
+  name: orange-snom
+  version: {{ version }}
+
+source:
+  git_url: ../
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - python -m pip install . --no-deps --ignore-installed --no-cache-dir -vvv
+
+requirements:
+  build:
+    - python >=3.10
+    - setuptools
+    - setuptools_scm
+  run:
+    - python >=3.10
+    - orange3 >=3.34.0
+    - orange-spectroscopy >=0.7.1
+    - numpy >=1.21.0,<2.0.0
+    - pySNOM >=0.1.0
+
+
+test:
+  imports:
+    - orangecontrib.snom
+  commands:
+    - python -m unittest -v orangecontrib.snom.tests orangecontrib.snom.widgets.tests
+
+about:
+  home: https://github.com/quasars/pySNOM
+  license:  PL-3.0-only
+  license_family: GPL
+  summary: 'orange-snom'
+
+extra:
+  recipe-maintainers:
+    - markotoplak
