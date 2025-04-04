@@ -57,10 +57,30 @@ def _image_from_table(data, image_opts):
     )
     return hypercube[:, :, 0], indices
 
-
+# Introdueced run_all optional argument to run for all attributes in the dataset (same for PreprocessImageOpts2DOnlyWholeReference)
 class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
-    def __call__(self, data, image_opts):
-        data = _prepare_table_for_image(data, image_opts)
+    def __call__(self, data, image_opts, run_all=False):
+        if run_all:
+            attrs_to_run = [v for v in data.domain.attributes]
+            for j, attr in enumerate(attrs_to_run):
+                image_opts["attr_value"] = attr.name
+                if j == 0:
+                    d = self._process_single_image_table(data, image_opts)
+                else:
+                    temp = self._process_single_image_table(data, image_opts)
+                    d = d.add_column(attr,temp.X[:, 0])
+        else:
+            d = self._process_single_image_table(data, image_opts)
+
+        return d
+        
+    
+    def _process_single_image_table(self, data, image_opts):
+        try:
+            data = _prepare_table_for_image(data, image_opts)
+        except KeyError:
+            raise WrongReferenceException("Data and reference do not contain the same features")
+        
         try:
             image, indices = _image_from_table(data, image_opts)
             transformed = self.transform_image(image, data)
@@ -81,9 +101,27 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
 
 
 class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
-    def __call__(self, data, image_opts):
-        data = _prepare_table_for_image(data, image_opts)
-        reference = _prepare_table_for_image(self.reference, image_opts)
+
+    def __call__(self, data, image_opts, run_all=False):
+        if run_all:
+            attrs_to_run = [v for v in data.domain.attributes]
+            for j, attr in enumerate(attrs_to_run):
+                image_opts["attr_value"] = attr.name
+                if j == 0:
+                    d = self._process_single_image_table(data, image_opts)
+                else:
+                    temp = self._process_single_image_table(data, image_opts)
+                    d = d.add_column(attr,temp.X[:, 0])
+        else:
+            d = self._process_single_image_table(data, image_opts)
+        return d
+
+    def _process_single_image_table(self, data, image_opts):
+        try:
+            data = _prepare_table_for_image(data, image_opts)
+            reference = _prepare_table_for_image(self.reference, image_opts)
+        except KeyError:
+            raise WrongReferenceException("Data and reference do not contain the same features")
         try:
             image, indices = _image_from_table(data, image_opts)
             ref_image, _ = _image_from_table(reference, image_opts)
