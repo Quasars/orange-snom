@@ -1,7 +1,7 @@
 from AnyQt.QtWidgets import QVBoxLayout
 
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
-from orangecontrib.spectroscopy.widgets.preprocessors.registry import preprocess_editors
+from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 from orangecontrib.snom.preprocess.phase_unwrap import PhaseUnwrap
 
 
@@ -26,4 +26,4 @@ class PhaseUnwrapEditor(BaseEditorOrange):
         return PhaseUnwrap()
 
 
-preprocess_editors.register(PhaseUnwrapEditor, 1000)
+preprocess_image_editors.register(PhaseUnwrapEditor, 1000)
