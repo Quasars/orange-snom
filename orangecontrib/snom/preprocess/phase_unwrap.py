@@ -6,17 +6,19 @@ from Orange.preprocess.preprocess import Preprocess
 
 from orangecontrib.spectroscopy.preprocess.utils import (
     SelectColumn,
-    CommonDomainOrderUnknowns,
+    CommonDomain,
 )
 
 
-class _PhaseUnwrapCommon(CommonDomainOrderUnknowns):
+class _PhaseUnwrapCommon(CommonDomain):
     # A possible optimization in the future:
     # the "order" functionality of CommonDomainOrderUnknowns is not needed,
     # but does not break anything either
+    def __init__(self, domain):
+        super().__init__(domain)
 
-    def transformed(self, X, _):  # noqa: N803
-        return np.unwrap(X)
+    def transformed(self, data):  # noqa: N803
+        return np.unwrap(data.X)
 
 
 class PhaseUnwrap(Preprocess):
