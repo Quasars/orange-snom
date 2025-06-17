@@ -5,14 +5,14 @@ import numpy as np
 from Orange.data import Table
 
 from orangecontrib.spectroscopy.tests.test_preprocess import (
-    TestCommonIndpSamplesMixin,
+    TestCommonIndpSamplesMixin as TCommonIndpSamplesMixin,  # hide it from pytest
     SMALLER_COLLAGEN,
 )
 
 from orangecontrib.snom.preprocess import PhaseUnwrap
 
 
-class TestPhaseUnwrap(unittest.TestCase, TestCommonIndpSamplesMixin):
+class TestPhaseUnwrap(unittest.TestCase, TCommonIndpSamplesMixin):
     preprocessors = [PhaseUnwrap()]
     data = SMALLER_COLLAGEN
 
