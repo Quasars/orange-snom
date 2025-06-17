@@ -1,4 +1,4 @@
-{% set version = "0.0.4" %}
+{% set version = "0.0.5" %}
 
 package:
   name: orange-snom
@@ -27,6 +27,8 @@ requirements:
 
 
 test:
+  requires:
+    - pytest
   imports:
     - orangecontrib.snom
   commands:
