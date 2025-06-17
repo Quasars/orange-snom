@@ -21,8 +21,8 @@ requirements:
   run:
     - python >=3.10
     - orange3 >=3.34.0
-    - orange-spectroscopy >=0.7.1
-    - numpy >=1.21.0,<2.0.0
+    - orange-spectroscopy >=0.7.2
+    - numpy >=1.24.0,<2.0.0
     - pySNOM >=0.1.0
 
 
@@ -30,7 +30,7 @@ test:
   imports:
     - orangecontrib.snom
   commands:
-    - python -m unittest -v orangecontrib.snom.tests orangecontrib.snom.widgets.tests
+    - pytest -v --pyargs orangecontrib.snom
 
 about:
   home: https://github.com/quasars/pySNOM
