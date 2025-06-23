@@ -166,6 +166,8 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
     attr_x = ContextSetting(None, exclude_attributes=True)
     attr_y = ContextSetting(None, exclude_attributes=True)
 
+    mask_table = None
+
     class Outputs:
         preprocessed_data = Output("Integrated Data", Orange.data.Table, default=True)
         preprocessor = Output("Preprocessor", preprocess.preprocess.Preprocess)
@@ -190,8 +192,6 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
         self.markings_list = []
         super().__init__()
         SelectionMaskImageOpts2DMixin.__init__(self)
-
-        self.mask_table = None
 
         self.preview_runner = ImagePreviewRunner(self)
 
@@ -304,13 +304,18 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
     def init_mask_values(self, data):
         domain = data.domain if data is not None else None
         self.mask_value_model.set_domain(domain)
-        self.update_mask_value_items()
+        if self.data is not None:
+            self.update_mask_value_items()
 
     def update_mask_value_items(self):
         self.cb_mask_value.clear()
         try:
             self.cb_mask_value.addItems(list(self.data.domain[self.mask_attr_value].values))
-        except KeyError:
+            self.cb_mask_value.setCurrentIndex(0)
+            self.mask_group_value = 0
+            # Need to update manually
+            self.set_mask_from_selection()
+        except:
             pass
 
     def set_mask_from_selection(self):
@@ -335,6 +340,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
             self.run_task,
             self.data,
             self.reference_data,
+            self.mask_table,
             image_opts,
             pp_def,
             self.process_reference,
@@ -364,13 +370,14 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
             # to generate valid interface even if context was not loaded
             self.contextAboutToBeOpened.emit([data])
 
-        self.set_mask_from_selection()
         self.update_attr()  # update imageplots attributes from the master
+        self.init_mask_values(data)
 
     @staticmethod
     def run_task(
         data: Orange.data.Table,
         reference: Orange.data.Table,
+        mask: Orange.data.Table,
         image_opts,
         pp_def,
         process_reference,
@@ -397,7 +404,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
             pp = create_preprocessor(item, reference)
             plist.append(pp)
             if data is not None:
-                data = execute_with_image_opts(pp, data, image_opts)
+                data = execute_with_image_opts(pp, data, image_opts, mask=mask)
             progress_interrupt((i / n + 0.5 / n) * 100)
             if process_reference and reference is not None and i != n - 1:
                 reference = execute_with_image_opts(pp, reference, image_opts)

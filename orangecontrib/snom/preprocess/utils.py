@@ -14,10 +14,7 @@ from orangecontrib.spectroscopy.utils import (
     values_to_linspace,
     index_values,
 )
-from orangecontrib.spectroscopy.widgets.utils import (
-    groups_or_annotated_table,
-    create_groups_table,
-)
+
 from pySNOM.images import mask_from_datacondition
 
 class PreprocessImageOpts(Preprocess):
@@ -200,13 +197,15 @@ class SelectionMaskImageOpts2DMixin:
     def get_mask(self, data, mask_attr_value = None, value=1.0):
 
         self.selected_image_opts["attr_value"] = mask_attr_value
-
-        try:
-            #Prepare a mask compatible with pySNOM tranformers
-            masktable = _prepare_table_for_image(data, self.selected_image_opts)
-            maskimage, _ = _image_from_table(masktable, self.selected_image_opts)
-            mask = mask_from_datacondition(maskimage==value)
-        except KeyError:
+        if self.data is not None:
+            try:
+                #Prepare a mask compatible with pySNOM tranformers
+                masktable = _prepare_table_for_image(data, self.selected_image_opts)
+                maskimage, _ = _image_from_table(masktable, self.selected_image_opts)
+                mask = mask_from_datacondition(maskimage==value)
+            except KeyError:
+                mask = None
+        else:
             mask = None
         
         return mask
