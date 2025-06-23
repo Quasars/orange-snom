@@ -17,11 +17,11 @@ class LineLevelProcessor(PreprocessImageOpts2DOnlyWhole):
     def __init__(self, method="median"):
         self.method = method
 
-    def transform_image(self, image, data):
+    def transform_image(self, image, data, mask=None):
         datatype = data.attributes.get("measurement.signaltype", "Phase")
         processed = LineLevel(
             method=self.method, datatype=DataTypes[datatype]
-        ).transform(image)
+        ).transform(image,mask=mask)
         if self.method == 'difference':
             # add a row of NaN, so that the size matches
             processed = np.vstack((processed, np.full((1, image.shape[1]), np.nan)))

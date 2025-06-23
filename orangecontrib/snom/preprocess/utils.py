@@ -2,6 +2,8 @@ import numpy as np
 
 from Orange.data import Domain
 from Orange.preprocess import Preprocess
+from Orange.widgets.widget import OWWidget, Msg
+
 from orangecontrib.spectroscopy.preprocess import (
     CommonDomain,
     SelectColumn,
@@ -12,7 +14,11 @@ from orangecontrib.spectroscopy.utils import (
     values_to_linspace,
     index_values,
 )
-
+from orangecontrib.spectroscopy.widgets.utils import (
+    groups_or_annotated_table,
+    create_groups_table,
+)
+from pySNOM.images import mask_from_datacondition
 
 class PreprocessImageOpts(Preprocess):
     pass
@@ -59,11 +65,11 @@ def _image_from_table(data, image_opts):
 
 
 class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
-    def __call__(self, data, image_opts):
+    def __call__(self, data, image_opts,mask=None):
         data = _prepare_table_for_image(data, image_opts)
         try:
             image, indices = _image_from_table(data, image_opts)
-            transformed = self.transform_image(image, data)
+            transformed = self.transform_image(image, data, mask=mask)
             col = transformed[indices].reshape(-1)
         except InvalidAxisException:
             col = np.full(len(data), np.nan)
@@ -72,7 +78,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
                 data.X[:, 0] = col
         return data
 
-    def transform_image(self, image, data):
+    def transform_image(self, image, data, mask=None):
         """
         image: a numpy 2D array where image[y,x] is the value in image row y and column x
         data: image data set (used for passing meta data)
@@ -175,3 +181,32 @@ class CommonDomainImage2D(CommonDomain):
         image: a numpy 2D array where image[y,x] is the value in image row y and column x
         """
         raise NotImplementedError
+
+
+class SelectionMaskImageOpts2DMixin:
+
+    selected_image_opts = {
+            'attr_x': str("map_x"),
+            'attr_y': str("map_y"),
+            'attr_value': "Selected",
+        }
+
+    class Warning(OWWidget.Warning):
+        no_mask_group = Msg("Compatibility mode: Selection does not output Groups.")
+
+    def __init__(self):
+        pass
+
+    def get_mask(self, data, mask_attr_value = None, value=1.0):
+
+        self.selected_image_opts["attr_value"] = mask_attr_value
+
+        try:
+            #Prepare a mask compatible with pySNOM tranformers
+            masktable = _prepare_table_for_image(data, self.selected_image_opts)
+            maskimage, _ = _image_from_table(masktable, self.selected_image_opts)
+            mask = mask_from_datacondition(maskimage==value)
+        except KeyError:
+            mask = None
+        
+        return mask
