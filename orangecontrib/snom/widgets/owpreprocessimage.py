@@ -162,6 +162,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
 
     attr_value = ContextSetting(None)
     mask_attr_value = ContextSetting(None)
+    mask_group_value = ContextSetting(1.0)
     attr_x = ContextSetting(None, exclude_attributes=True)
     attr_y = ContextSetting(None, exclude_attributes=True)
 
@@ -204,10 +205,14 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
                 ),
                 valid_types=DiscreteVariable,)
         
-        self.mask_value = gui.comboBox(
+        self.cb_mask_var = gui.comboBox(
             mbox, self, "mask_attr_value",
             contentsLength=12, searchable=True,
-            callback=self.set_mask_from_selection, model=self.mask_value_model)
+            callback=self.update_mask_value_items, model=self.mask_value_model)
+        
+        self.cb_mask_value = gui.comboBox(
+            mbox, self, "mask_group_value",
+            contentsLength=12, callback=self.set_mask_from_selection)
         
         self.feature_value_model = DomainModel(
             order=(
@@ -265,9 +270,6 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
 
         self.preview_runner.preview_updated.connect(self.redraw_data)
 
-    def set_mask_from_selection(self):
-        self.mask_table = self.get_mask(self.data,mask_attr_value=self.mask_attr_value)
-
     def update_attr(self):
         self.curveplot.attr_x = self.attr_x
         self.curveplot.attr_y = self.attr_y
@@ -301,7 +303,19 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
 
     def init_mask_values(self, data):
         domain = data.domain if data is not None else None
-        self.mask_value_model.set_domain(domain)   
+        self.mask_value_model.set_domain(domain)
+        self.update_mask_value_items()
+
+    def update_mask_value_items(self):
+        self.cb_mask_value.clear()
+        try:
+            self.cb_mask_value.addItems(list(self.data.domain[self.mask_attr_value].values))
+        except KeyError:
+            pass
+
+    def set_mask_from_selection(self):
+        self.mask_table = self.get_mask(self.data,mask_attr_value=self.mask_attr_value,value=self.mask_group_value)
+        self.on_modelchanged()
 
     def image_opts(self):
         return {
