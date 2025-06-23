@@ -1,7 +1,9 @@
 import numpy as np
+from enum import Enum
 
 from Orange.data import Domain
 from Orange.preprocess import Preprocess
+
 from orangecontrib.spectroscopy.preprocess import (
     CommonDomain,
     SelectColumn,
@@ -13,6 +15,8 @@ from orangecontrib.spectroscopy.utils import (
     values_to_linspace,
     index_values,
 )
+
+from pySNOM.images import mask_from_datacondition
 
 
 class PreprocessImageOpts(Preprocess):
@@ -62,7 +66,7 @@ def _image_from_table(data, image_opts):
 
 
 class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
-    def __call__(self, data, image_opts, run_all=False):
+    def __call__(self, data, image_opts, run_all=False, mask=None):
         if run_all or len(data.domain.attributes) == 0:
             attrs_to_run = [v.name for v in data.domain.attributes]
             newdata = data.copy()
@@ -85,7 +89,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
 
             try:
                 image, indices = _image_from_table(temp, image_opts)
-                transformed = self.transform_image(image, newdata)
+                transformed = self.transform_image(image, newdata, mask=mask)
                 new_vals[:, i] = transformed[indices].reshape(-1)
             except InvalidAxisException:
                 new_vals[:, i] = np.full(len(newdata), np.nan)
@@ -95,7 +99,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
 
         return newdata
 
-    def transform_image(self, image, data):
+    def transform_image(self, image, data, mask=None):
         """
         image: a numpy 2D array where image[y,x] is the value in image row y and column x
         data: image data set (used for passing meta data)
@@ -109,7 +113,7 @@ class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
         if self.reference is None:
             raise MissingReferenceException("Preprocessor needs a reference.")
 
-    def __call__(self, data, image_opts, run_all=False):
+    def __call__(self, data, image_opts, run_all=False, mask=None):
         if run_all or len(data.domain.attributes) == 0:
             attrs_to_run = [v.name for v in data.domain.attributes]
             newdata = data.copy()
@@ -246,3 +250,44 @@ class CommonDomainImage2D(CommonDomain):
         image: a numpy 2D array where image[y,x] is the value in image row y and column x
         """
         raise NotImplementedError
+
+
+class SelectionMaskImageOpts2DMixin:
+    selected_image_opts = {
+        'attr_x': "map_x",
+        'attr_y': "map_y",
+        'attr_value': "Selected",
+    }
+
+    def __init__(self):
+        pass
+
+    def get_mask(self, data, mask_attr_value=None, value=1.0):
+        self.selected_image_opts["attr_value"] = mask_attr_value
+        if self.data is not None:
+            try:
+                # Prepare a mask compatible with pySNOM tranformers
+                masktable = _prepare_table_for_image(data, self.selected_image_opts)
+                maskimage, _ = _image_from_table(masktable, self.selected_image_opts)
+                mask = mask_from_datacondition(maskimage == value)
+            except KeyError:
+                mask = None
+        else:
+            mask = None
+
+        return mask
+
+
+class MaskOptions(Enum):
+    IGNORE = 0
+    EXCLUDE = 1
+    INCLUDE = 2
+
+
+def transform_mask(mask, option):
+    if option == MaskOptions.IGNORE:
+        mask = None
+    elif option == MaskOptions.INCLUDE:
+        mask = mask_from_datacondition(mask == 1.0)
+
+    return mask
