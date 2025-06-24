@@ -2,7 +2,7 @@ from AnyQt.QtWidgets import QFormLayout
 
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 from orangecontrib.spectroscopy.widgets.gui import lineEditFloatRange
-from orangewidget.gui import comboBox
+from orangewidget.gui import comboBox, checkBox
 
 from pySNOM.images import SimpleNormalize, DataTypes
 
@@ -13,15 +13,17 @@ from orangecontrib.snom.preprocess.utils import (
 
 
 class SimpleNorm(PreprocessImageOpts2DOnlyWhole):
-    def __init__(self, method, value):
+    def __init__(self, method, value, use_mask=False):
         self.method = method
         self.value = value
+        self.use_mask = use_mask
 
-    def transform_image(self, image, data):
+    def transform_image(self, image, data, mask=None):
         datatype = data.attributes.get("measurement.signaltype", "Phase")
+        mask = mask if self.use_mask else None
         return SimpleNormalize(
             method=self.method, value=self.value, datatype=DataTypes[datatype]
-        ).transform(image)
+        ).transform(image, mask=mask)
 
 
 class SimpleNormEditor(BaseEditorOrange):
@@ -33,6 +35,7 @@ class SimpleNormEditor(BaseEditorOrange):
 
         self.method = "manual"
         self.value = 1.0
+        self.use_mask = False
 
         form = QFormLayout()
         self.valueedit = lineEditFloatRange(
@@ -41,8 +44,11 @@ class SimpleNormEditor(BaseEditorOrange):
         self.cb_method = comboBox(self, self, "method", callback=self.setmethod)
         self.cb_method.addItems(['median', 'mean', 'manual'])
         self.cb_method.setCurrentText('manual')
-        form.addRow("method", self.cb_method)
-        form.addRow("value", self.valueedit)
+        self.use_mask_chb = checkBox(self, self,"use_mask","Enable",callback=self.edited.emit)
+
+        form.addRow("Method", self.cb_method)
+        form.addRow("Value", self.valueedit)
+        form.addRow("Masking", self.use_mask_chb)
         self.controlArea.setLayout(form)
 
     def setmethod(self):
@@ -60,13 +66,15 @@ class SimpleNormEditor(BaseEditorOrange):
     def setParameters(self, params):
         self.method = params.get("method", "manual")
         self.value = params.get("value", 1)
+        self.use_mask = params.get("use_mask", False)
 
     @classmethod
     def createinstance(cls, params):
         params = dict(params)
         method = str(params.get("method", "manual"))
         value = float(params.get("value", 1))
-        return SimpleNorm(method=method, value=value)
+        use_mask = bool(params.get("use_mask", False))
+        return SimpleNorm(method=method, value=value, use_mask=use_mask)
 
     def set_preview_data(self, data):
         if data:
