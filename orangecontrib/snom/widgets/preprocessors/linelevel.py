@@ -1,7 +1,7 @@
 import numpy as np
 from AnyQt.QtWidgets import QFormLayout
 
-from orangewidget.gui import comboBox
+from orangewidget.gui import comboBox, checkBox
 
 from pySNOM.images import LineLevel, DataTypes
 
@@ -14,11 +14,13 @@ from orangecontrib.snom.preprocess.utils import (
 
 
 class LineLevelProcessor(PreprocessImageOpts2DOnlyWhole):
-    def __init__(self, method="median"):
+    def __init__(self, method="median", use_mask=False):
         self.method = method
+        self.use_mask = use_mask
 
     def transform_image(self, image, data, mask=None):
         datatype = data.attributes.get("measurement.signaltype", "Phase")
+        mask = mask if self.use_mask else None
         processed = LineLevel(
             method=self.method, datatype=DataTypes[datatype]
         ).transform(image,mask=mask)
@@ -36,11 +38,15 @@ class LineLevelEditor(BaseEditorOrange):
         super().__init__(parent, **kwargs)
 
         self.method = 'median'
+        self.use_mask = False
 
         form = QFormLayout()
         self.levelmethod_cb = comboBox(self, self, "method", callback=self.setmethod)
         self.levelmethod_cb.addItems(['median', 'mean', 'difference'])
         form.addRow("Leveling method", self.levelmethod_cb)
+
+        self.use_mask_chb = checkBox(self, self,"use_mask","Enable",callback=self.edited.emit)
+        form.addRow("Masking", self.use_mask_chb)
         self.controlArea.setLayout(form)
 
     def activateOptions(self):
@@ -52,12 +58,14 @@ class LineLevelEditor(BaseEditorOrange):
 
     def setParameters(self, params):
         self.method = params.get("method", "median")
+        self.use_mask = params.get("use_mask", False)
 
     @classmethod
     def createinstance(cls, params):
         params = dict(params)
         method = params.get("method", "median")
-        return LineLevelProcessor(method=method)
+        use_mask = bool(params.get("use_mask", False))
+        return LineLevelProcessor(method=method,use_mask=use_mask)
 
     def set_preview_data(self, data):
         if data:
