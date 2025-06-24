@@ -62,7 +62,7 @@ def _image_from_table(data, image_opts):
 
 
 class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
-    def __call__(self, data, image_opts,mask=None):
+    def __call__(self, data, image_opts, mask=None):
         data = _prepare_table_for_image(data, image_opts)
         try:
             image, indices = _image_from_table(data, image_opts)
@@ -84,7 +84,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
 
 
 class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
-    def __call__(self, data, image_opts):
+    def __call__(self, data, image_opts, mask=None):
         data = _prepare_table_for_image(data, image_opts)
         reference = _prepare_table_for_image(self.reference, image_opts)
         try:
