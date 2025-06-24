@@ -6,7 +6,10 @@ from Orange.data import Domain, DiscreteVariable, ContinuousVariable
 from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.utils.itemmodels import DomainModel
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
-from orangecontrib.snom.preprocess.utils import PreprocessImageOpts, SelectionMaskImageOpts2DMixin
+from orangecontrib.snom.preprocess.utils import (
+    PreprocessImageOpts,
+    SelectionMaskImageOpts2DMixin,
+)
 from orangewidget import gui
 from orangewidget.settings import SettingProvider, ContextSetting, Setting
 
@@ -68,6 +71,7 @@ class SpectralImagePreprocess(GeneralPreprocess, ImagePreviews, openclass=True):
         super().onDeleteWidget()
         ImagePreviews.shutdown(self)
 
+
 def execute_with_image_opts(pp, data, image_opts, mask=None):
     if isinstance(pp, PreprocessImageOpts):
         return pp(data, image_opts, mask)
@@ -99,7 +103,7 @@ class ImagePreviewRunner(PreviewRunner):
                 pp_def,
                 master.process_reference,
             )
-            
+
         else:
             master.curveplot.set_data(None)
             master.curveplot_after.set_data(None)
@@ -143,7 +147,9 @@ class SpectralImagePreprocessReference(SpectralImagePreprocess, openclass=True):
         self.reference_data = reference
 
 
-class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts2DMixin):
+class OWPreprocessImage(
+    SpectralImagePreprocessReference, SelectionMaskImageOpts2DMixin
+):
     name = "Preprocess image"
     id = "orangecontrib.snom.widgets.preprocessimage"
     description = "Process image"
@@ -202,18 +208,28 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
                 DomainModel.CLASSES,
                 DomainModel.Separator,
                 DomainModel.METAS,
-                ),
-                valid_types=DiscreteVariable,)
-        
+            ),
+            valid_types=DiscreteVariable,
+        )
+
         self.cb_mask_var = gui.comboBox(
-            mbox, self, "mask_attr_value",
-            contentsLength=12, searchable=True,
-            callback=self.update_mask_value_items, model=self.mask_value_model)
-        
+            mbox,
+            self,
+            "mask_attr_value",
+            contentsLength=12,
+            searchable=True,
+            callback=self.update_mask_value_items,
+            model=self.mask_value_model,
+        )
+
         self.cb_mask_value = gui.comboBox(
-            mbox, self, "mask_group_value",
-            contentsLength=12, callback=self.set_mask_from_selection)
-        
+            mbox,
+            self,
+            "mask_group_value",
+            contentsLength=12,
+            callback=self.set_mask_from_selection,
+        )
+
         self.feature_value_model = DomainModel(
             order=(
                 DomainModel.ATTRIBUTES,
@@ -310,7 +326,9 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
     def update_mask_value_items(self):
         self.cb_mask_value.clear()
         try:
-            self.cb_mask_value.addItems(list(self.data.domain[self.mask_attr_value].values))
+            self.cb_mask_value.addItems(
+                list(self.data.domain[self.mask_attr_value].values)
+            )
             self.cb_mask_value.setCurrentIndex(0)
             self.mask_group_value = 0
             # Need to update manually
@@ -319,7 +337,9 @@ class OWPreprocessImage(SpectralImagePreprocessReference, SelectionMaskImageOpts
             pass
 
     def set_mask_from_selection(self):
-        self.mask_table = self.get_mask(self.data,mask_attr_value=self.mask_attr_value,value=self.mask_group_value)
+        self.mask_table = self.get_mask(
+            self.data, mask_attr_value=self.mask_attr_value, value=self.mask_group_value
+        )
         self.on_modelchanged()
 
     def image_opts(self):

@@ -17,6 +17,7 @@ from orangecontrib.spectroscopy.utils import (
 
 from pySNOM.images import mask_from_datacondition
 
+
 class PreprocessImageOpts(Preprocess):
     pass
 
@@ -181,12 +182,11 @@ class CommonDomainImage2D(CommonDomain):
 
 
 class SelectionMaskImageOpts2DMixin:
-
     selected_image_opts = {
-            'attr_x': str("map_x"),
-            'attr_y': str("map_y"),
-            'attr_value': "Selected",
-        }
+        'attr_x': "map_x",
+        'attr_y': "map_y",
+        'attr_value': "Selected",
+    }
 
     class Warning(OWWidget.Warning):
         no_mask_group = Msg("Compatibility mode: Selection does not output Groups.")
@@ -194,18 +194,17 @@ class SelectionMaskImageOpts2DMixin:
     def __init__(self):
         pass
 
-    def get_mask(self, data, mask_attr_value = None, value=1.0):
-
+    def get_mask(self, data, mask_attr_value=None, value=1.0):
         self.selected_image_opts["attr_value"] = mask_attr_value
         if self.data is not None:
             try:
-                #Prepare a mask compatible with pySNOM tranformers
+                # Prepare a mask compatible with pySNOM tranformers
                 masktable = _prepare_table_for_image(data, self.selected_image_opts)
                 maskimage, _ = _image_from_table(masktable, self.selected_image_opts)
-                mask = mask_from_datacondition(maskimage==value)
+                mask = mask_from_datacondition(maskimage == value)
             except KeyError:
                 mask = None
         else:
             mask = None
-        
+
         return mask

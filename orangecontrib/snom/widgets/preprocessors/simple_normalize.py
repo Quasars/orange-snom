@@ -44,7 +44,9 @@ class SimpleNormEditor(BaseEditorOrange):
         self.cb_method = comboBox(self, self, "method", callback=self.setmethod)
         self.cb_method.addItems(['median', 'mean', 'manual'])
         self.cb_method.setCurrentText('manual')
-        self.use_mask_chb = checkBox(self, self,"use_mask","Enable",callback=self.edited.emit)
+        self.use_mask_chb = checkBox(
+            self, self, "use_mask", "Enable", callback=self.edited.emit
+        )
 
         form.addRow("Method", self.cb_method)
         form.addRow("Value", self.valueedit)

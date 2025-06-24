@@ -23,7 +23,7 @@ class LineLevelProcessor(PreprocessImageOpts2DOnlyWhole):
         mask = mask if self.use_mask else None
         processed = LineLevel(
             method=self.method, datatype=DataTypes[datatype]
-        ).transform(image,mask=mask)
+        ).transform(image, mask=mask)
         if self.method == 'difference':
             # add a row of NaN, so that the size matches
             processed = np.vstack((processed, np.full((1, image.shape[1]), np.nan)))
@@ -45,7 +45,9 @@ class LineLevelEditor(BaseEditorOrange):
         self.levelmethod_cb.addItems(['median', 'mean', 'difference'])
         form.addRow("Leveling method", self.levelmethod_cb)
 
-        self.use_mask_chb = checkBox(self, self,"use_mask","Enable",callback=self.edited.emit)
+        self.use_mask_chb = checkBox(
+            self, self, "use_mask", "Enable", callback=self.edited.emit
+        )
         form.addRow("Masking", self.use_mask_chb)
         self.controlArea.setLayout(form)
 
@@ -65,7 +67,7 @@ class LineLevelEditor(BaseEditorOrange):
         params = dict(params)
         method = params.get("method", "median")
         use_mask = bool(params.get("use_mask", False))
-        return LineLevelProcessor(method=method,use_mask=use_mask)
+        return LineLevelProcessor(method=method, use_mask=use_mask)
 
     def set_preview_data(self, data):
         if data:

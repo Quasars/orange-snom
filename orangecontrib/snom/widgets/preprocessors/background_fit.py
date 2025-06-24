@@ -23,7 +23,7 @@ class BackGroundFit(PreprocessImageOpts2DOnlyWhole):
         mask = mask if self.use_mask else None
         d = MaskedBackgroundPolyFit(
             xorder=self.xorder, yorder=self.yorder, datatype=DataTypes[datatype]
-        ).transform(image,mask=mask)
+        ).transform(image, mask=mask)
         return d
 
 
@@ -41,8 +41,10 @@ class BackGroundFitEditor(BaseEditorOrange):
         form = QFormLayout()
         xorderedit = lineEditIntRange(self, self, "xorder", callback=self.edited.emit)
         yorderedit = lineEditIntRange(self, self, "yorder", callback=self.edited.emit)
-        self.use_mask_chb = checkBox(self, self,"use_mask","Enable",callback=self.edited.emit)
-        
+        self.use_mask_chb = checkBox(
+            self, self, "use_mask", "Enable", callback=self.edited.emit
+        )
+
         form.addRow("xorder", xorderedit)
         form.addRow("yorder", yorderedit)
         form.addRow("Masking", self.use_mask_chb)
