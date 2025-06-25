@@ -368,5 +368,4 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
 if __name__ == "__main__":  # pragma: no cover
     from Orange.widgets.utils.widgetpreview import WidgetPreview
 
-    data = Orange.data.Table("REVlaserAmid.xyz")
-    WidgetPreview(OWPreprocessImage).run(set_data=data, set_reference=data)
+    WidgetPreview(OWPreprocessImage).run(Orange.data.Table("whitelight.gsf"))
