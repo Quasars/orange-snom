@@ -43,7 +43,7 @@ class LorentzianPermittivityEditor(ModelEditor):
 def pack_model_editor(editor):
     return PreprocessAction(
         name=editor.name,
-        qualname=f"orangecontrib.spectroscopy.widgets.owopticalmodel.{editor.prefix_generic}",
+        qualname=f"orangecontrib.spectroscopy.widgets.owsnompy.{editor.prefix_generic}",
         category=editor.category,
         description=Description(getattr(editor, 'description', editor.name),
                                 icon_path(editor.icon)),
@@ -74,9 +74,9 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
 
         self.preview_updated.emit()
 
-class OWOpticalModel(OWPeakFit):
-    name = "Optical Model"
-    description = "Model spectra optically"
+class OWSnomModel(OWPeakFit):
+    name = "SNOM Model"
+    description = "Model SNOM spectra with snompy"
 
     PREPROCESSORS = PREPROCESSORS
     BUTTON_ADD_LABEL = "Add term..."
@@ -142,4 +142,4 @@ class OWOpticalModel(OWPeakFit):
 
 if __name__ == "__main__":  # pragma: no cover
     data = Cut(lowlim=1680, highlim=1800)(Table("collagen")[0:1])
-    WidgetPreview(OWOpticalModel).run(data)
+    WidgetPreview(OWSnomModel).run(data)
