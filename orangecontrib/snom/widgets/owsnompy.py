@@ -3,12 +3,14 @@ import snompy.sample
 from Orange.data import Table
 from Orange.widgets import gui
 from Orange.widgets.data.owpreprocess import PreprocessAction, Description, icon_path
+from Orange.widgets.data.utils.preprocess import DescriptionRole
 from lmfit import Model
 from orangewidget.utils.widgetpreview import WidgetPreview
 
 from orangecontrib.spectroscopy.preprocess import Cut
 from orangecontrib.spectroscopy.preprocess.integrate import (
     INTEGRATE_DRAW_BASELINE_PENARGS,
+    INTEGRATE_DRAW_CURVE_PENARGS,
 )
 from orangecontrib.spectroscopy.util import getx
 from orangecontrib.spectroscopy.widgets.owhyper import refresh_integral_markings
@@ -17,6 +19,7 @@ from orangecontrib.spectroscopy.widgets.owpeakfit import (
     create_model,
     prepare_params,
     PeakPreviewRunner,
+    unique_prefix,
 )
 from orangecontrib.spectroscopy.widgets.peak_editors import ModelEditor
 
@@ -136,29 +139,40 @@ class OWSnomModel(OWPeakFit):
                     color = self.flow_view.preview_color(i)
                     dis_abs.append({"draw": di_abs, "color": color})
                     dis_angle.append({"draw": di_angle, "color": color})
-        # result = None
-        # if np.any(self.curveplot.selection_group) and self.curveplot.data \
-        #         and self.preview_runner.preview_model_result:
-        #     # select result
-        #     ind = np.flatnonzero(self.curveplot.selection_group)[0]
-        #     row_id = self.curveplot.data[ind].id
-        #     result = self.preview_runner.preview_model_result.get(row_id, None)
-        # if result is not None:
-        #     # show total fit
-        #     eval = np.atleast_2d(np.broadcast_to(result.eval(x=x), x.shape))
-        #     di = [("curve", (x, eval, INTEGRATE_DRAW_CURVE_PENARGS))]
-        #     dis.append({"draw": di, "color": 'red'})
-        #     # show components
-        #     eval_comps = result.eval_components(x=x)
-        #     for i in range(self.preprocessormodel.rowCount()):
-        #         item = self.preprocessormodel.item(i)
-        #         prefix = unique_prefix(item.data(DescriptionRole).viewclass, i)
-        #         comp = eval_comps.get(prefix, None)
-        #         if comp is not None:
-        #             comp = np.atleast_2d(np.broadcast_to(comp, x.shape))
-        #             di = [("curve", (x, comp, INTEGRATE_DRAW_CURVE_PENARGS))]
-        #             color = self.flow_view.preview_color(i)
-        #             dis.append({"draw": di, "color": color})
+        result = None
+        if (
+            np.any(self.curveplot.selection_group)
+            and self.curveplot.data
+            and self.preview_runner.preview_model_result
+        ):
+            # select result
+            ind = np.flatnonzero(self.curveplot.selection_group)[0]
+            row_id = self.curveplot.data[ind].id
+            result = self.preview_runner.preview_model_result.get(row_id, None)
+        if result is not None:
+            # show total fit
+            eval = np.atleast_2d(np.broadcast_to(result.eval(x=x), x.shape))
+            di_abs = [("curve", (x, np.abs(eval), INTEGRATE_DRAW_CURVE_PENARGS))]
+            dis_abs.append({"draw": di_abs, "color": 'red'})
+            di_angle = [("curve", (x, np.angle(eval), INTEGRATE_DRAW_CURVE_PENARGS))]
+            dis_angle.append({"draw": di_angle, "color": 'red'})
+            # show components
+            eval_comps = result.eval_components(x=x)
+            for i in range(self.preprocessormodel.rowCount()):
+                item = self.preprocessormodel.item(i)
+                prefix = unique_prefix(item.data(DescriptionRole).viewclass, i)
+                comp = eval_comps.get(prefix, None)
+                if comp is not None:
+                    comp = np.atleast_2d(np.broadcast_to(comp, x.shape))
+                    di_abs = [
+                        ("curve", (x, np.abs(comp), INTEGRATE_DRAW_CURVE_PENARGS))
+                    ]
+                    di_angle = [
+                        ("curve", (x, np.angle(comp), INTEGRATE_DRAW_CURVE_PENARGS))
+                    ]
+                    color = self.flow_view.preview_color(i)
+                    dis_abs.append({"draw": di_abs, "color": color})
+                    dis_angle.append({"draw": di_angle, "color": color})
 
         refresh_integral_markings(dis_abs, self.markings_list, self.curveplot)
         refresh_integral_markings(
