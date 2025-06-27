@@ -11,7 +11,7 @@ from orangecontrib.spectroscopy.preprocess import Cut
 from orangecontrib.spectroscopy.preprocess.integrate import INTEGRATE_DRAW_BASELINE_PENARGS
 from orangecontrib.spectroscopy.util import getx
 from orangecontrib.spectroscopy.widgets.owhyper import refresh_integral_markings
-from orangecontrib.spectroscopy.widgets.owpeakfit import OWPeakFit, create_model, prepare_params
+from orangecontrib.spectroscopy.widgets.owpeakfit import OWPeakFit, create_model, prepare_params, PeakPreviewRunner
 from orangecontrib.spectroscopy.widgets.peak_editors import ModelEditor
 
 
@@ -52,6 +52,28 @@ def pack_model_editor(editor):
 
 PREPROCESSORS = [pack_model_editor(e) for e in [LorentzianPermittivityEditor]]
 
+class ComplexPeakPreviewRunner(PeakPreviewRunner):
+
+    def on_done(self, result):
+        orig_data, after_data, model_result = result
+        final_preview = self.preview_pos is None
+        if final_preview:
+            self.preview_data = orig_data
+            self.after_data = orig_data
+
+        if self.preview_data is None:  # happens in OWIntegrate
+            self.preview_data = orig_data
+
+        self.preview_model_result = model_result
+
+        # TODO handle complex input data here?
+        self.master.curveplot.set_data(self.preview_data)
+        self.master.curveplot_after.set_data(self.preview_data)
+
+        self.show_image_info(final_preview)
+
+        self.preview_updated.emit()
+
 class OWOpticalModel(OWPeakFit):
     name = "Optical Model"
     description = "Model spectra optically"
@@ -62,11 +84,18 @@ class OWOpticalModel(OWPeakFit):
     def __init__(self):
         super().__init__()
 
+        # Show _after (work-around for complex plotting)
+        self.curveplot_after.show()
+
+        # Custom preview running just to plot complex values
+        self.preview_runner = ComplexPeakPreviewRunner(self)
+
         # Model options
         box = gui.widgetBox(self.controlArea,"Model Options")
 
     def redraw_integral(self):
-        dis = []
+        dis_abs = []
+        dis_angle = []
         if self.curveplot.data:
             x = np.sort(getx(self.curveplot.data))
             previews = self.flow_view.preview_n()
@@ -77,10 +106,13 @@ class OWOpticalModel(OWPeakFit):
                     p = prepare_params(item, m)
                     # Show initial fit values for now
                     init = np.atleast_2d(np.broadcast_to(m.eval(p, x=x), x.shape))
-                    init = np.angle(init)
-                    di = [("curve", (x, init, INTEGRATE_DRAW_BASELINE_PENARGS))]
+                    init_abs = np.abs(init)
+                    init_angle = np.angle(init)
+                    di_abs = [("curve", (x, init_abs, INTEGRATE_DRAW_BASELINE_PENARGS))]
+                    di_angle = [("curve", (x, init_angle, INTEGRATE_DRAW_BASELINE_PENARGS))]
                     color = self.flow_view.preview_color(i)
-                    dis.append({"draw": di, "color": color})
+                    dis_abs.append({"draw": di_abs, "color": color})
+                    dis_angle.append({"draw": di_angle, "color": color})
         # result = None
         # if np.any(self.curveplot.selection_group) and self.curveplot.data \
         #         and self.preview_runner.preview_model_result:
@@ -105,7 +137,8 @@ class OWOpticalModel(OWPeakFit):
         #             color = self.flow_view.preview_color(i)
         #             dis.append({"draw": di, "color": color})
 
-        refresh_integral_markings(dis, self.markings_list, self.curveplot)
+        refresh_integral_markings(dis_abs, self.markings_list, self.curveplot)
+        refresh_integral_markings(dis_angle, self.markings_list, self.curveplot_after)
 
 if __name__ == "__main__":  # pragma: no cover
     data = Cut(lowlim=1680, highlim=1800)(Table("collagen")[0:1])
