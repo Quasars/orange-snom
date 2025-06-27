@@ -5,25 +5,40 @@ from Orange.widgets import gui
 from Orange.widgets.data.owpreprocess import PreprocessAction, Description, icon_path
 from lmfit import Model
 from orangewidget.utils.widgetpreview import WidgetPreview
-import snompy.sample
 
 from orangecontrib.spectroscopy.preprocess import Cut
-from orangecontrib.spectroscopy.preprocess.integrate import INTEGRATE_DRAW_BASELINE_PENARGS
+from orangecontrib.spectroscopy.preprocess.integrate import (
+    INTEGRATE_DRAW_BASELINE_PENARGS,
+)
 from orangecontrib.spectroscopy.util import getx
 from orangecontrib.spectroscopy.widgets.owhyper import refresh_integral_markings
-from orangecontrib.spectroscopy.widgets.owpeakfit import OWPeakFit, create_model, prepare_params, PeakPreviewRunner
+from orangecontrib.spectroscopy.widgets.owpeakfit import (
+    OWPeakFit,
+    create_model,
+    prepare_params,
+    PeakPreviewRunner,
+)
 from orangecontrib.spectroscopy.widgets.peak_editors import ModelEditor
 
 
-def lorentz_perm(x, nu_j=0.0, gamma_j=1.0, A_j=1.0, eps_inf=1.0):
+# Wrapping existing function, so re-using "A_j" notation (for now).
+def lorentz_perm(x, nu_j=0.0, gamma_j=1.0, A_j=1.0, eps_inf=1.0):  # noqa: N803
     return snompy.sample.lorentz_perm(x, nu_j, gamma_j, A_j=A_j, eps_inf=eps_inf)
 
+
 class LorentzianPermittivityModel(Model):
-    def __init__(self, independent_vars=['x'], prefix='', nan_policy='raise',
-                 **kwargs):
-        kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
-                       'independent_vars': independent_vars})
+    def __init__(
+        self, independent_vars=('x',), prefix='', nan_policy='raise', **kwargs
+    ):
+        kwargs.update(
+            {
+                'prefix': prefix,
+                'nan_policy': nan_policy,
+                'independent_vars': independent_vars,
+            }
+        )
         super().__init__(lorentz_perm, **kwargs)
+
 
 class LorentzianPermittivityEditor(ModelEditor):
     name = "Lorentzian Permittivity"
@@ -40,20 +55,23 @@ class LorentzianPermittivityEditor(ModelEditor):
     def model_lines():
         return ('nu_j',)
 
+
 def pack_model_editor(editor):
     return PreprocessAction(
         name=editor.name,
         qualname=f"orangecontrib.spectroscopy.widgets.owsnompy.{editor.prefix_generic}",
         category=editor.category,
-        description=Description(getattr(editor, 'description', editor.name),
-                                icon_path(editor.icon)),
+        description=Description(
+            getattr(editor, 'description', editor.name), icon_path(editor.icon)
+        ),
         viewclass=editor,
     )
 
+
 PREPROCESSORS = [pack_model_editor(e) for e in [LorentzianPermittivityEditor]]
 
-class ComplexPeakPreviewRunner(PeakPreviewRunner):
 
+class ComplexPeakPreviewRunner(PeakPreviewRunner):
     def on_done(self, result):
         orig_data, after_data, model_result = result
         final_preview = self.preview_pos is None
@@ -74,6 +92,7 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
 
         self.preview_updated.emit()
 
+
 class OWSnomModel(OWPeakFit):
     name = "SNOM Model"
     description = "Model SNOM spectra with snompy"
@@ -91,7 +110,7 @@ class OWSnomModel(OWPeakFit):
         self.preview_runner = ComplexPeakPreviewRunner(self)
 
         # Model options
-        box = gui.widgetBox(self.controlArea,"Model Options")
+        gui.widgetBox(self.controlArea, "Model Options")
 
     def redraw_integral(self):
         dis_abs = []
@@ -109,7 +128,9 @@ class OWSnomModel(OWPeakFit):
                     init_abs = np.abs(init)
                     init_angle = np.angle(init)
                     di_abs = [("curve", (x, init_abs, INTEGRATE_DRAW_BASELINE_PENARGS))]
-                    di_angle = [("curve", (x, init_angle, INTEGRATE_DRAW_BASELINE_PENARGS))]
+                    di_angle = [
+                        ("curve", (x, init_angle, INTEGRATE_DRAW_BASELINE_PENARGS))
+                    ]
                     color = self.flow_view.preview_color(i)
                     dis_abs.append({"draw": di_abs, "color": color})
                     dis_angle.append({"draw": di_angle, "color": color})
@@ -139,6 +160,7 @@ class OWSnomModel(OWPeakFit):
 
         refresh_integral_markings(dis_abs, self.markings_list, self.curveplot)
         refresh_integral_markings(dis_angle, self.markings_list, self.curveplot_after)
+
 
 if __name__ == "__main__":  # pragma: no cover
     data = Cut(lowlim=1680, highlim=1800)(Table("collagen")[0:1])
