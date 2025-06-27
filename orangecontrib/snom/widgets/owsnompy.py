@@ -105,6 +105,8 @@ class OWSnomModel(OWPeakFit):
 
         # Show _after (work-around for complex plotting)
         self.curveplot_after.show()
+        # Markings list for _after
+        self.markings_list_after = []
 
         # Custom preview running just to plot complex values
         self.preview_runner = ComplexPeakPreviewRunner(self)
@@ -159,7 +161,9 @@ class OWSnomModel(OWPeakFit):
         #             dis.append({"draw": di, "color": color})
 
         refresh_integral_markings(dis_abs, self.markings_list, self.curveplot)
-        refresh_integral_markings(dis_angle, self.markings_list, self.curveplot_after)
+        refresh_integral_markings(
+            dis_angle, self.markings_list_after, self.curveplot_after
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover
