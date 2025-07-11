@@ -22,7 +22,7 @@ requirements:
     - python >=3.10
     - orange3 >=3.34.0
     - orange-spectroscopy >=0.7.2
-    - numpy >=1.24.0,<2.0.0
+    - numpy >=1.24.0
     - pySNOM >=0.1.0
 
 
