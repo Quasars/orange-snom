@@ -201,7 +201,8 @@ class OWPreprocessImage(
 
         self.preview_runner = ImagePreviewRunner(self)
 
-        mbox = gui.widgetBox(self.controlArea, "Mask selection")
+        mbox = gui.widgetBox(None, "Mask")
+        self.controlArea.layout().insertWidget(2,mbox)
 
         self.mask_value_model = DomainModel(
             order=(
@@ -210,24 +211,6 @@ class OWPreprocessImage(
                 DomainModel.METAS,
             ),
             valid_types=DiscreteVariable,
-        )
-
-        self.cb_mask_var = gui.comboBox(
-            mbox,
-            self,
-            "mask_attr_value",
-            contentsLength=12,
-            searchable=True,
-            callback=self.update_mask_value_items,
-            model=self.mask_value_model,
-        )
-
-        self.cb_mask_value = gui.comboBox(
-            mbox,
-            self,
-            "mask_group_value",
-            contentsLength=12,
-            callback=self.set_mask_from_selection,
         )
 
         self.feature_value_model = DomainModel(
@@ -242,11 +225,33 @@ class OWPreprocessImage(
         )
 
         common_options = {
-            "labelWidth": 50,
+            "labelWidth": 70,
             "orientation": Qt.Horizontal,
             "sendSelectedValue": True,
         }
 
+        self.cb_mask_var = gui.comboBox(
+            mbox,
+            self,
+            "mask_attr_value",
+            label="Column",
+            contentsLength=12,
+            searchable=True,
+            callback=self.update_mask_value_items,
+            model=self.mask_value_model,
+            **common_options
+        )
+
+        self.cb_mask_value = gui.comboBox(
+            mbox,
+            self,
+            "mask_group_value",
+            label="Value",
+            contentsLength=12,
+            callback=self.set_mask_from_selection,
+            **common_options
+        )
+        
         self.feature_value = gui.comboBox(
             self.preview_settings_box,
             self,
