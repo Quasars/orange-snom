@@ -10,17 +10,19 @@ from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOra
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 from orangecontrib.snom.preprocess.utils import (
     PreprocessImageOpts2DOnlyWhole,
+    MaskOptions,
+    transform_mask
 )
 
 
 class LineLevelProcessor(PreprocessImageOpts2DOnlyWhole):
-    def __init__(self, method="median", use_mask=False):
+    def __init__(self, method="median", mask_method=False):
         self.method = method
-        self.use_mask = use_mask
+        self.mask_method = mask_method
 
     def transform_image(self, image, data, mask=None):
         datatype = data.attributes.get("measurement.signaltype", "Phase")
-        mask = mask if self.use_mask else None
+        mask = transform_mask(mask=mask, option=MaskOptions[self.mask_method])
         processed = LineLevel(
             method=self.method, datatype=DataTypes[datatype]
         ).transform(image, mask=mask)
@@ -38,6 +40,7 @@ class LineLevelEditor(BaseEditorOrange):
         super().__init__(parent, **kwargs)
 
         self.method = 'median'
+        self.mask_method = 'IGNORE'
         self.use_mask = False
 
         form = QFormLayout()
@@ -45,10 +48,9 @@ class LineLevelEditor(BaseEditorOrange):
         self.levelmethod_cb.addItems(['median', 'mean', 'difference'])
         form.addRow("Leveling method", self.levelmethod_cb)
 
-        self.use_mask_chb = checkBox(
-            self, self, "use_mask", "Enable", callback=self.edited.emit
-        )
-        form.addRow("Masking", self.use_mask_chb)
+        self.maskmethod_cb = comboBox(self,self,"mask_method",callback=self.setmethod)
+        self.maskmethod_cb.addItems([e.name for e in MaskOptions])
+        form.addRow("Mask", self.maskmethod_cb)
         self.controlArea.setLayout(form)
 
     def activateOptions(self):
@@ -56,18 +58,19 @@ class LineLevelEditor(BaseEditorOrange):
 
     def setmethod(self):
         self.method = self.levelmethod_cb.currentText()
+        self.mask_method = self.maskmethod_cb.currentText()
         self.edited.emit()
 
     def setParameters(self, params):
         self.method = params.get("method", "median")
-        self.use_mask = params.get("use_mask", False)
+        self.mask_method = params.get("mask_method", "IGNORE")
 
     @classmethod
     def createinstance(cls, params):
         params = dict(params)
         method = params.get("method", "median")
-        use_mask = bool(params.get("use_mask", False))
-        return LineLevelProcessor(method=method, use_mask=use_mask)
+        mask_method = params.get("mask_method", "IGNORE")
+        return LineLevelProcessor(method=method, mask_method=mask_method)
 
     def set_preview_data(self, data):
         if data:
