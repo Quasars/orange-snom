@@ -180,6 +180,7 @@ class OWPreprocessImage(
 
     class Warning(SpectralImagePreprocess.Warning):
         threshold_error = Msg("Low slider should be less than High")
+        no_mask_group = Msg("No groups found for masking")
 
     class Error(SpectralImagePreprocess.Error):
         image_too_big = Msg("Image for chosen features is too big ({} x {}).")
@@ -241,7 +242,8 @@ class OWPreprocessImage(
             model=self.mask_value_model,
             **common_options
         )
-
+        
+        common_options["sendSelectedValue"] = False
         self.cb_mask_value = gui.comboBox(
             mbox,
             self,
@@ -252,6 +254,7 @@ class OWPreprocessImage(
             **common_options
         )
         
+        common_options["sendSelectedValue"] = True
         self.feature_value = gui.comboBox(
             self.preview_settings_box,
             self,
@@ -303,7 +306,6 @@ class OWPreprocessImage(
 
     def redraw_data(self):
         self.curveplot.update_view()
-        self.curveplot.refresh_img_selection()
         self.curveplot_after.update_view()
 
     def init_interface_data(self, data):
@@ -329,6 +331,7 @@ class OWPreprocessImage(
             self.update_mask_value_items()
 
     def update_mask_value_items(self):
+        self.Warning.no_mask_group.clear()
         self.cb_mask_value.clear()
         try:
             self.cb_mask_value.addItems(
@@ -338,8 +341,8 @@ class OWPreprocessImage(
             self.mask_group_value = 0
             # Need to update manually
             self.set_mask_from_selection()
-        except:
-            pass
+        except KeyError:
+            self.Warning.no_mask_group()
 
     def set_mask_from_selection(self):
         self.mask_table = self.get_mask(

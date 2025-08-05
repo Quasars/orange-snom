@@ -188,9 +188,6 @@ class SelectionMaskImageOpts2DMixin:
         'attr_value': "Selected",
     }
 
-    class Warning(OWWidget.Warning):
-        no_mask_group = Msg("Compatibility mode: Selection does not output Groups.")
-
     def __init__(self):
         pass
 
