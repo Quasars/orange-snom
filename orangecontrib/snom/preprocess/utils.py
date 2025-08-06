@@ -57,36 +57,38 @@ def _image_from_table(data, image_opts):
     )
     return hypercube[:, :, 0], indices
 
-# Introdueced run_all optional argument to run for all attributes in the dataset (same for PreprocessImageOpts2DOnlyWholeReference)
+# Introdueced run_all optional argument to run for all attributes 
+# in the dataset (same for PreprocessImageOpts2DOnlyWholeReference)
 class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
     def __call__(self, data, image_opts, run_all=False):
         if run_all:
-            d = table_with_no_attribute(data)
-            attrs_to_run = [v for v in data.domain.attributes]
-            for attr in enumerate(attrs_to_run):
-                image_opts["attr_value"] = attr.name
-                temp = self._process_single_image_table(data, image_opts)
-                d = d.add_column(attr,temp.X[:, 0])
+            attrs_to_run = [v.name for v in data.domain.attributes]
+            newdata = data.copy()
         else:
-            d = self._process_single_image_table(data, image_opts)
-        return d
+            # This is only for the preview for a single feature image
+            # So it only processes one image
+            attrs_to_run = [image_opts["attr_value"]]
+            newdata = _prepare_table_for_image(data, image_opts)
+
+        M = np.full(np.shape(newdata.X), np.nan, dtype="float")
+        for i, attr in enumerate(attrs_to_run):
+            image_opts["attr_value"] = attr
+            try:
+                temp = _prepare_table_for_image(newdata, image_opts)
+            except KeyError:
+                raise WrongReferenceException("Data and reference do not contain the same features")
+            
+            try:
+                image, indices = _image_from_table(temp, image_opts)
+                transformed = self.transform_image(image, newdata)
+                M[:,i] = transformed[indices].reshape(-1)
+            except InvalidAxisException:
+                M[:,i] = np.full(len(newdata), np.nan)
         
-    def _process_single_image_table(self, data, image_opts):
-        try:
-            data = _prepare_table_for_image(data, image_opts)
-        except KeyError:
-            raise WrongReferenceException("Data and reference do not contain the same features")
-        
-        try:
-            image, indices = _image_from_table(data, image_opts)
-            transformed = self.transform_image(image, data)
-            col = transformed[indices].reshape(-1)
-        except InvalidAxisException:
-            col = np.full(len(data), np.nan)
-        if len(data):
-            with data.unlocked(data.X):
-                data.X[:, 0] = col
-        return data
+        with newdata.unlocked(newdata.X):
+            newdata.X = M
+
+        return newdata
 
     def transform_image(self, image, data):
         """
