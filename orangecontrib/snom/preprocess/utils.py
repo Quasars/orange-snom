@@ -3,7 +3,6 @@ from enum import Enum
 
 from Orange.data import Domain
 from Orange.preprocess import Preprocess
-from Orange.widgets.widget import OWWidget, Msg
 
 from orangecontrib.spectroscopy.preprocess import (
     CommonDomain,
@@ -207,16 +206,17 @@ class SelectionMaskImageOpts2DMixin:
 
         return mask
 
+
 class MaskOptions(Enum):
     IGNORE = 0
     EXCLUDE = 1
     INCLUDE = 2
 
-def transform_mask(mask,option):
+
+def transform_mask(mask, option):
     if option == MaskOptions.IGNORE:
         mask = None
     elif option == MaskOptions.INCLUDE:
         mask = mask_from_datacondition(mask == 1.0)
-    
-    return mask
 
+    return mask

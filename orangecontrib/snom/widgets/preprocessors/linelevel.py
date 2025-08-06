@@ -1,7 +1,7 @@
 import numpy as np
 from AnyQt.QtWidgets import QFormLayout
 
-from orangewidget.gui import comboBox, checkBox
+from orangewidget.gui import comboBox
 
 from pySNOM.images import LineLevel, DataTypes
 
@@ -11,7 +11,7 @@ from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_e
 from orangecontrib.snom.preprocess.utils import (
     PreprocessImageOpts2DOnlyWhole,
     MaskOptions,
-    transform_mask
+    transform_mask,
 )
 
 
@@ -48,7 +48,9 @@ class LineLevelEditor(BaseEditorOrange):
         self.levelmethod_cb.addItems(['median', 'mean', 'difference'])
         form.addRow("Leveling method", self.levelmethod_cb)
 
-        self.maskmethod_cb = comboBox(self,self,"mask_method",callback=self.setmethod)
+        self.maskmethod_cb = comboBox(
+            self, self, "mask_method", callback=self.setmethod
+        )
         self.maskmethod_cb.addItems([e.name for e in MaskOptions])
         form.addRow("Mask", self.maskmethod_cb)
         self.controlArea.setLayout(form)

@@ -203,7 +203,7 @@ class OWPreprocessImage(
         self.preview_runner = ImagePreviewRunner(self)
 
         mbox = gui.widgetBox(None, "Mask")
-        self.controlArea.layout().insertWidget(2,mbox)
+        self.controlArea.layout().insertWidget(2, mbox)
 
         self.mask_value_model = DomainModel(
             order=(
@@ -242,7 +242,7 @@ class OWPreprocessImage(
             model=self.mask_value_model,
             **common_options
         )
-        
+
         common_options["sendSelectedValue"] = False
         self.cb_mask_value = gui.comboBox(
             mbox,
@@ -253,7 +253,7 @@ class OWPreprocessImage(
             callback=self.set_mask_from_selection,
             **common_options
         )
-        
+
         common_options["sendSelectedValue"] = True
         self.feature_value = gui.comboBox(
             self.preview_settings_box,
