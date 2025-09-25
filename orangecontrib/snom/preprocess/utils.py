@@ -102,36 +102,50 @@ class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
 
     def __call__(self, data, image_opts, run_all=False):
         if run_all:
-            d = table_with_no_attribute(data)
-            attrs_to_run = [v for v in data.domain.attributes]
-            for attr in enumerate(attrs_to_run):
-                image_opts["attr_value"] = attr.name
-                temp = self._process_single_image_table(data, image_opts)
-                d = d.add_column(attr,temp.X[:, 0])
+            attrs_to_run = [v.name for v in data.domain.attributes]
+            newdata = data.copy()
         else:
-            d = self._process_single_image_table(data, image_opts)
-        return d
+            # This is only for the preview for a single feature image
+            # So it only processes one image
+            attrs_to_run = [image_opts["attr_value"]]
+            newdata = _prepare_table_for_image(data, image_opts)
 
-    def _process_single_image_table(self, data, image_opts):
-        try:
-            data = _prepare_table_for_image(data, image_opts)
-            reference = _prepare_table_for_image(self.reference, image_opts)
-        except KeyError:
-            raise WrongReferenceException("Data and reference do not contain the same features")
-        try:
-            image, indices = _image_from_table(data, image_opts)
-            ref_image, _ = _image_from_table(reference, image_opts)
-            if image.shape != ref_image.shape:
-                raise WrongReferenceException("Reference and image data should have the same sizes")
-            transformed = self.transform_image(image, ref_image, data)
-            col = transformed[indices].reshape(-1)
-        except InvalidAxisException:
-            col = np.full(len(data), np.nan)
-        if len(data):
-            with data.unlocked(data.X):
-                data.X[:, 0] = col
-        return data
+        ref_attrs = [v.name for v in self.reference.domain.attributes]
+        reflen = len(ref_attrs)
+        image_opts_ref = image_opts.copy()
 
+        if attrs_to_run != ref_attrs or reflen != 1:
+            WrongReferenceException("Reference has to contain the same features or be single-featured")
+        
+        M = np.full(np.shape(newdata.X), np.nan, dtype="float")
+        for i, attr in enumerate(attrs_to_run):
+            image_opts["attr_value"] = attr
+            # If reference is longer, than it has the same features as data
+            # If it is single-featured, than always use the single image for correction
+            if reflen!=1:
+                image_opts_ref["attr_value"] = ref_attrs[i]
+            else:
+                image_opts_ref["attr_value"] = ref_attrs[0]
+
+            try:
+                temp = _prepare_table_for_image(newdata, image_opts)
+                reference = _prepare_table_for_image(self.reference, image_opts_ref)
+            except KeyError:
+                raise WrongReferenceException("Data and reference do not contain the same features")
+            
+            try:
+                image, indices = _image_from_table(temp, image_opts)
+                ref_image, _ = _image_from_table(reference, image_opts_ref)
+                transformed = self.transform_image(image,ref_image, newdata)
+                M[:,i] = transformed[indices].reshape(-1)
+            except InvalidAxisException:
+                M[:,i] = np.full(len(newdata), np.nan)
+        
+        with newdata.unlocked(newdata.X):
+            newdata.X = M
+
+        return newdata
+    
     def transform_image(self, image, ref_image, data):
         """
         image: a numpy 2D array where image[y,x] is the value in image row y and column x
