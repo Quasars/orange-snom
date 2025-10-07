@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import snompy.sample
 from Orange.data import Table
@@ -182,4 +184,19 @@ class OWSnomModel(OWPeakFit):
 
 if __name__ == "__main__":  # pragma: no cover
     data = Cut(lowlim=1680, highlim=1800)(Table("collagen")[0:1])
-    WidgetPreview(OWSnomModel).run(data)
+    wp = WidgetPreview(OWSnomModel)
+    wp.run(data, no_exec=True, no_exit=True)
+    # Demo PMMA model
+    p = pack_model_editor(LorentzianPermittivityEditor)
+    wp.widget.add_preprocessor(p)
+    editor = wp.widget.flow_view.widgets()[-1]
+    editor.set_hint('nu_j', 'value', 1738)
+    editor.set_hint('A_j', 'value', 100000)
+    editor.set_hint('gamma_j', 'value', 20)
+    editor.set_hint('eps_inf', 'value', 2)
+    editor.set_hint('eps_inf', 'vary', 'fixed')
+    wp.widget.show_preview(show_info_anyway=True)
+    # Rest of run()
+    exit_code = wp.exec_widget()
+    wp.tear_down()
+    sys.exit(exit_code)
