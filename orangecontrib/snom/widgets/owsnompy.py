@@ -23,7 +23,10 @@ from orangecontrib.spectroscopy.widgets.owpeakfit import (
     PeakPreviewRunner,
     unique_prefix,
 )
-from orangecontrib.spectroscopy.widgets.peak_editors import ModelEditor
+from orangecontrib.spectroscopy.widgets.peak_editors import (
+    ModelEditor,
+    ConstantModelEditor,
+)
 
 
 # Wrapping existing function, so re-using "A_j" notation (for now).
@@ -33,7 +36,11 @@ def lorentz_perm(x, nu_j=0.0, gamma_j=1.0, A_j=1.0, eps_inf=1.0):  # noqa: N803
 
 class LorentzianPermittivityModel(Model):
     def __init__(
-        self, independent_vars=('x',), prefix='', nan_policy='raise', **kwargs
+        self,
+        independent_vars=['x'],  # noqa: B006 (lmfit compat)
+        prefix='',
+        nan_policy='raise',
+        **kwargs,
     ):
         kwargs.update(
             {
@@ -43,6 +50,10 @@ class LorentzianPermittivityModel(Model):
             }
         )
         super().__init__(lorentz_perm, **kwargs)
+
+
+class StaticPermittivityEditor(ConstantModelEditor):
+    name = "Static Permittivity"
 
 
 class LorentzianPermittivityEditor(ModelEditor):
@@ -73,7 +84,13 @@ def pack_model_editor(editor):
     )
 
 
-PREPROCESSORS = [pack_model_editor(e) for e in [LorentzianPermittivityEditor]]
+PREPROCESSORS = [
+    pack_model_editor(e)
+    for e in [
+        LorentzianPermittivityEditor,
+        StaticPermittivityEditor,
+    ]
+]
 
 
 class ComplexPeakPreviewRunner(PeakPreviewRunner):
@@ -182,19 +199,47 @@ class OWSnomModel(OWPeakFit):
         )
 
 
+def add_editor(cls, widget):
+    widget.add_preprocessor(pack_model_editor(cls))
+    editor = widget.flow_view.widgets()[-1]
+    return editor
+
+
+def add_fixed_params(editor, params: dict):
+    for k, v in params.items():
+        editor.set_hint(k, 'value', v)
+        editor.set_hint(k, 'vary', 'fixed')
+
+
 if __name__ == "__main__":  # pragma: no cover
     data = Cut(lowlim=1680, highlim=1800)(Table("collagen")[0:1])
     wp = WidgetPreview(OWSnomModel)
     wp.run(data, no_exec=True, no_exit=True)
     # Demo PMMA model
-    p = pack_model_editor(LorentzianPermittivityEditor)
-    wp.widget.add_preprocessor(p)
-    editor = wp.widget.flow_view.widgets()[-1]
-    editor.set_hint('nu_j', 'value', 1738)
-    editor.set_hint('A_j', 'value', 100000)
-    editor.set_hint('gamma_j', 'value', 20)
-    editor.set_hint('eps_inf', 'value', 2)
-    editor.set_hint('eps_inf', 'vary', 'fixed')
+    # Air
+    add_fixed_params(
+        add_editor(StaticPermittivityEditor, wp.widget),
+        {
+            'c': 1,
+        },
+    )
+    # PMMA
+    add_fixed_params(
+        add_editor(LorentzianPermittivityEditor, wp.widget),
+        {
+            'nu_j': 1738,
+            'A_j': 100000,
+            'gamma_j': 20,
+            'eps_inf': 2,
+        },
+    )
+    # Si permitivitty in the mid-infrared
+    add_fixed_params(
+        add_editor(StaticPermittivityEditor, wp.widget),
+        {
+            'c': 11.7,
+        },
+    )
     wp.widget.show_preview(show_info_anyway=True)
     # Rest of run()
     exit_code = wp.exec_widget()
