@@ -1,12 +1,20 @@
+import multiprocessing
+import concurrent.futures
 import sys
+import time
 
 import numpy as np
-import snompy.sample
 from Orange.data import Table
 from Orange.widgets import gui
 from Orange.widgets.data.owpreprocess import PreprocessAction, Description, icon_path
 from Orange.widgets.data.utils.preprocess import DescriptionRole
-from lmfit import Model
+from Orange.widgets.utils.concurrent import TaskState
+from lmfit import Model, Parameters
+from lmfit.model import ModelResult
+from orangecontrib.spectroscopy.widgets.owpreprocess import InterruptException
+from orangecontrib.spectroscopy.widgets.peakfit_compute import (
+    pool_fit2,
+)
 from orangewidget.utils.widgetpreview import WidgetPreview
 
 from orangecontrib.spectroscopy.preprocess import Cut
@@ -28,28 +36,11 @@ from orangecontrib.spectroscopy.widgets.peak_editors import (
     ConstantModelEditor,
 )
 
-
-# Wrapping existing function, so re-using "A_j" notation (for now).
-def lorentz_perm(x, nu_j=0.0, gamma_j=1.0, A_j=1.0, eps_inf=1.0):  # noqa: N803
-    return snompy.sample.lorentz_perm(x, nu_j, gamma_j, A_j=A_j, eps_inf=eps_inf)
-
-
-class LorentzianPermittivityModel(Model):
-    def __init__(
-        self,
-        independent_vars=['x'],  # noqa: B006 (lmfit compat)
-        prefix='',
-        nan_policy='raise',
-        **kwargs,
-    ):
-        kwargs.update(
-            {
-                'prefix': prefix,
-                'nan_policy': nan_policy,
-                'independent_vars': independent_vars,
-            }
-        )
-        super().__init__(lorentz_perm, **kwargs)
+from orangecontrib.snom.model.snompy import (
+    compose_model,
+    LorentzianPermittivityModel,
+    DrudePermittivityModel,
+)
 
 
 class StaticPermittivityEditor(ConstantModelEditor):
@@ -70,6 +61,23 @@ class LorentzianPermittivityEditor(ModelEditor):
     @staticmethod
     def model_lines():
         return ('nu_j',)
+
+
+class DrudePermittivityEditor(ModelEditor):
+    name = "Drude Permittivity"
+    model = DrudePermittivityModel
+    prefix_generic = 'dp'
+    category = "Peak"
+    icon = "Normalize.svg"
+
+    @staticmethod
+    def model_parameters():
+        return 'nu_plasma', 'gamma', 'eps_inf'
+
+    # Plotting the plasma wavenumber doesn't make sense
+    # @staticmethod
+    # def model_lines():
+    #     return ('nu_plasma',)
 
 
 def pack_model_editor(editor):
@@ -113,6 +121,56 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
         self.show_image_info(final_preview)
 
         self.preview_updated.emit()
+
+    # Identical to parent except
+    # -- calls model list
+    # -- different compute function
+    @staticmethod
+    def run_preview(data: Table, m_def, pool, state: TaskState):
+        def progress_interrupt(_: float):
+            if state.is_interruption_requested():
+                raise InterruptException
+
+        # Protects against running the task in succession many times, as would
+        # happen when adding a preprocessor (there, commit() is called twice).
+        # Wait 100 ms before processing - if a new task is started in meanwhile,
+        # allow that is easily` cancelled.
+        for _ in range(10):
+            time.sleep(0.010)
+            progress_interrupt(0)
+
+        orig_data = data
+
+        model_list, parameters = create_model_list(m_def)
+        model = compose_model(model_list)
+
+        model_result = {}
+        x = getx(data)
+        if data is not None and model is not None:
+            for row in data:
+                progress_interrupt(0)
+                res = pool.schedule(pool_fit2, (row.x, model.dumps(), parameters, x))
+                while not res.done():
+                    try:
+                        progress_interrupt(0)
+                    except InterruptException:
+                        # CANCEL
+                        if (
+                            multiprocessing.get_start_method() != "fork"
+                            and res.running()
+                        ):
+                            # If slower start methods are used, give the current computation
+                            # some time to exit gracefully; this avoids reloading processes
+                            concurrent.futures.wait([res], 1.0)
+                        if not res.done():
+                            res.cancel()
+                        raise
+                    concurrent.futures.wait([res], 0.05)
+                fits = res.result()
+                model_result[row.id] = ModelResult(model, parameters).loads(fits)
+
+        progress_interrupt(0)
+        return orig_data, data, model_result
 
 
 class OWSnomModel(OWPeakFit):
@@ -197,6 +255,26 @@ class OWSnomModel(OWPeakFit):
         refresh_integral_markings(
             dis_angle, self.markings_list_after, self.curveplot_after
         )
+
+
+def create_model_list(m_def: list[None]) -> tuple[list[Model], Parameters]:
+    """create_composite_model() but returns list of models instead"""
+    # TODO move to owpeakfit, split create_composite_model up
+    n = len(m_def)
+    m_list = []
+    parameters = Parameters()
+    for i in range(n):
+        item = m_def[i]
+        m = create_model(item, i)
+        p = prepare_params(item, m)
+        m_list.append(m)
+        parameters.update(p)
+
+    model = None
+    if m_list:
+        model = m_list
+
+    return model, parameters
 
 
 def add_editor(cls, widget):
