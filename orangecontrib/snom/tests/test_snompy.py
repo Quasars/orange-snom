@@ -9,12 +9,12 @@ from orangecontrib.snom.model.snompy import (
     Interface,
     Reference,
     DrudePermittivityModel,
+    compose_sample,
 )
 from orangecontrib.snom.tests.snompy_examples import snompy_t_dependent_spectra
 
 
 class TestSnompyModel(unittest.TestCase):
-    @staticmethod
     def test_fdm_pmma_single(self):
         """Tests the model code generates the same output as the PMMA example"""
         snompy_eta_n = snompy_t_dependent_spectra()
@@ -47,3 +47,33 @@ class TestSnompyModel(unittest.TestCase):
         model_result = model.fit(v, params=parameters, x=x)
         eta_n = np.broadcast_to(model_result.eval(x=x), x.shape)
         np.testing.assert_array_equal(eta_n, snompy_eta_n)
+
+    def test_compose_sample(self):
+        """Test the sample / reference compose / split from a model list"""
+        model_list = [
+            0,
+            1,
+            2,
+            3,
+            Interface(),
+            4,
+            Interface(),
+            5,
+            6,
+            Reference(),
+            7,
+            8,
+            9,
+            10,
+            11,
+            Interface(),
+            12,
+            13,
+            14,
+            15,
+        ]
+        m_iter = iter(model_list)
+        sample = list(compose_sample(m_iter))
+        reference = list(compose_sample(m_iter))
+        assert sample == [6, 4]  # [0+1+2+3, 4]
+        assert reference == [45, 54]  # [7+8+9+10+11, 12+13+14+15]

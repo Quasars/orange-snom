@@ -1,4 +1,6 @@
 from functools import reduce
+from typing import Any
+from collections.abc import Iterable, Generator
 
 import snompy
 from lmfit import Model
@@ -63,6 +65,30 @@ class Reference:
     """Define the start of the reference sample"""
 
 
+def compose_layer(m_iter: Iterable[Model]) -> Generator[Reference | Model, Any, None]:
+    """Compose a layer from an interator of models, stopping at Interface"""
+    for m in m_iter:
+        if isinstance(m, Interface):
+            break
+        elif isinstance(m, Reference):
+            yield m
+            break
+        yield m
+
+
+def compose_sample(m_iter: Iterable[Model]) -> Model:
+    """Compose a sample from an interator of models, stopping at Reference or end"""
+    while True:
+        sample = list(compose_layer(m_iter))
+        if len(sample) == 0 or any(isinstance(m, Reference) for m in sample):
+            break
+        yield reduce(lambda x, y: x + y, sample)
+
+
 def compose_model(m_list: list[Model]) -> Model:
     """"""
-    return reduce(lambda x, y: x + y, m_list)
+    m_iter = iter(m_list)
+    sample = list(compose_sample(m_iter))
+    reference = list(compose_sample(m_iter))
+
+    return sample, reference
