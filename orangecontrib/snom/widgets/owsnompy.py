@@ -47,6 +47,11 @@ class StaticPermittivityEditor(ConstantModelEditor):
     name = "Static Permittivity"
 
 
+class InterfaceEditor(ConstantModelEditor):
+    name = "Interface"
+    prefix_generic = 'if'
+
+
 class LorentzianPermittivityEditor(ModelEditor):
     name = "Lorentzian Permittivity"
     model = LorentzianPermittivityModel
