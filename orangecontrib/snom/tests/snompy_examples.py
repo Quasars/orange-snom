@@ -65,7 +65,7 @@ def snompy_t_dependent_spectra():
     # Normalised complex scattering
     eta_n = sigma_pmma / sigma_Au
     # fmt: on
-    yield eta_n
+    yield eta_n[-1]
 
 
 snompy_t_dependent_spectra_keys = [
