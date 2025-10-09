@@ -1,5 +1,4 @@
 import unittest
-from functools import reduce, partial
 
 import numpy as np
 from lmfit.models import ConstantModel
@@ -11,7 +10,7 @@ from orangecontrib.snom.model.snompy import (
     Reference,
     DrudePermittivityModel,
     compose_layer,
-    MultilayerModel,
+    FiniteInterface,
 )
 from orangecontrib.snom.tests.snompy_examples import (
     snompy_t_dependent_spectra_stepwise,
@@ -23,7 +22,7 @@ class TestSnompyModel(unittest.TestCase):
         self.snompy_t_dependent_spectra = snompy_t_dependent_spectra_stepwise()
         self.model_list = [
             ConstantModel(name="Air", prefix="const1_"),
-            Interface(),
+            FiniteInterface(prefix="if2_"),
             LorentzianPermittivityModel(name="PMMA", prefix="lp3_"),
             Interface(),
             ConstantModel(name="Si", prefix="const5_"),
@@ -39,6 +38,7 @@ class TestSnompyModel(unittest.TestCase):
         # Values from example
         return model.make_params(
             const1_c={'value': 1, 'vary': False},
+            if2_c={'value': 35 * 1e-9, 'vary': False},
             lp3_nu_j={'value': 1738e2, 'vary': False},
             lp3_A_j={'value': 4.2e8, 'vary': False},
             lp3_gamma_j={'value': 20e2, 'vary': False},
@@ -83,7 +83,7 @@ class TestSnompyModel(unittest.TestCase):
             1,
             2,
             3,
-            Interface(),
+            i34 := FiniteInterface(),
             4,
             Interface(),
             5,
@@ -103,7 +103,7 @@ class TestSnompyModel(unittest.TestCase):
         m_iter = iter(model_list)
         sample = list(compose_layer(m_iter))
         reference = list(compose_layer(m_iter))
-        assert sample == [6, 4]  # [0+1+2+3, 4]
+        assert sample == [6, i34, 4, 11]  # [0+1+2+3, 4, 5+6]
         assert reference == [45, 54]  # [7+8+9+10+11, 12+13+14+15]
 
 
@@ -130,60 +130,3 @@ def plot_complex(array_d, nu_vac, title=""):
     fig.tight_layout()
     plt.legend()
     plt.show(block=False)
-
-
-class TestMultilayerModel(unittest.TestCase):
-    def test_multilayer_model_sum(self):
-        """Simple test for multilayer model with np.sum()"""
-        models = [
-            ConstantModel(name="Air", prefix="const1_"),
-            LorentzianPermittivityModel(name="PMMA", prefix="lp3_"),
-            ConstantModel(name="Si", prefix="const5_"),
-        ]
-        composite_model = reduce(lambda x, y: x + y, models)
-        np_sum_axis = partial(np.sum, axis=0)
-        multilayer_model = MultilayerModel(models, np_sum_axis)
-        # Attributes
-        assert composite_model.components == multilayer_model.components
-        assert composite_model.independent_vars == multilayer_model.independent_vars
-        assert composite_model.param_names == multilayer_model.param_names
-        # Eval
-        x = np.linspace(1680, 1800, 10) * 1e2
-
-        model_evals = []
-        for model in models:
-            result = model.fit(
-                np.ones_like(x), params=TestSnompyModel.make_params(model), x=x
-            )
-            model_evals.append(np.broadcast_to(result.eval(x=x), x.shape))
-        np_sum_eval = np.sum(model_evals, axis=0)
-        reduce_add_eval = reduce(lambda x, y: x + y, model_evals)
-        np.testing.assert_array_equal(np_sum_eval, reduce_add_eval)
-
-        composite_result = composite_model.fit(
-            np.ones_like(x), params=TestSnompyModel.make_params(composite_model), x=x
-        )
-        composite_eval = np.broadcast_to(composite_result.eval(x=x), x.shape)
-        np.testing.assert_array_equal(composite_eval, reduce_add_eval)
-
-        multilayer_result = multilayer_model.fit(
-            np.ones_like(x), params=TestSnompyModel.make_params(multilayer_model), x=x
-        )
-        multilayer_eval = np.broadcast_to(multilayer_result.eval(x=x), x.shape)
-        np.testing.assert_array_equal(multilayer_eval, np_sum_eval)
-        np.testing.assert_array_equal(composite_eval, multilayer_eval)
-
-    @staticmethod
-    def np_sum_axis_0(a):
-        return np.sum(a, axis=0)
-
-    def test_multilayer_model_serialization(self):
-        models = [
-            ConstantModel(name="Air", prefix="const1_"),
-            LorentzianPermittivityModel(name="PMMA", prefix="lp3_"),
-            ConstantModel(name="Si", prefix="const5_"),
-        ]
-        multilayer_model = MultilayerModel(models, self.np_sum_axis_0)
-        serialized_model = multilayer_model.dumps()
-        restored_model = MultilayerModel(None).loads(serialized_model)
-        assert multilayer_model == restored_model
