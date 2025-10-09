@@ -172,3 +172,18 @@ class TestMultilayerModel(unittest.TestCase):
         multilayer_eval = np.broadcast_to(multilayer_result.eval(x=x), x.shape)
         np.testing.assert_array_equal(multilayer_eval, np_sum_eval)
         np.testing.assert_array_equal(composite_eval, multilayer_eval)
+
+    @staticmethod
+    def np_sum_axis_0(a):
+        return np.sum(a, axis=0)
+
+    def test_multilayer_model_serialization(self):
+        models = [
+            ConstantModel(name="Air", prefix="const1_"),
+            LorentzianPermittivityModel(name="PMMA", prefix="lp3_"),
+            ConstantModel(name="Si", prefix="const5_"),
+        ]
+        multilayer_model = MultilayerModel(models, self.np_sum_axis_0)
+        serialized_model = multilayer_model.dumps()
+        restored_model = MultilayerModel(None).loads(serialized_model)
+        assert multilayer_model == restored_model
