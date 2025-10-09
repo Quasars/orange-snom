@@ -111,7 +111,7 @@ def compose_sample(m_iter: Iterable[Model]) -> Model | None:
     if len(sample) == 1:  # Permittivity
         return sample[0]
     elif len(sample) >= 2:
-        return MultilayerModel(sample, eff_pol)
+        return MultilayerModel(sample, eff_pol_n)
     else:
         return None
 
@@ -125,6 +125,12 @@ def compose_model(m_list: list[Model]) -> Model:
         return sample
     else:
         return sample / reference
+
+
+def eff_pol_n(sample, **kwargs):
+    return snompy.fdm.eff_pol_n(
+        sample=sample, A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
+    )
 
 
 def eff_pol(sample, **kwargs):
