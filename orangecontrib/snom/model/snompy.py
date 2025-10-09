@@ -229,7 +229,8 @@ class MultilayerModel(Model):
         # return (f"({self.left._reprstring(long=long)} "
         #         f"{self._known_ops.get(self.op, self.op)} "
         #         f"{self.right._reprstring(long=long)})")
-        return tuple(f"({m._reprstring(long=long)}" for m in self.models)
+        # Still needs to show what self.op is
+        return tuple(f"MultilayerModel({m._reprstring(long=long)}" for m in self.models)
 
     def eval(self, params=None, **kwargs):
         """Evaluate model function for composite model."""
