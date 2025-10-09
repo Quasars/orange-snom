@@ -55,10 +55,12 @@ class TestSnompyModel(unittest.TestCase):
         submodels = {
             "eps_pmma": self.model_list[2:3],
             "eps_Au": self.model_list[8:9],
-            "alpha_eff_pmma": self.model_list[:5],
+            # "alpha_eff_pmma": self.model_list[:5],
             # "alpha_eff_pmma_nomod": self.model_list[:5],
-            "alpha_eff_Au": self.model_list[6:9],
+            "sigma_pmma": self.model_list[:5],
+            # "alpha_eff_Au": self.model_list[6:9],
             # "alpha_eff_Au_nomod": self.model_list[6:9],
+            "sigma_Au": self.model_list[6:9],
             "eta_n": self.model_list,
         }
         for step, snompy in self.snompy_t_dependent_spectra.items():

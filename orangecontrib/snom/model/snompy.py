@@ -111,7 +111,7 @@ def compose_sample(m_iter: Iterable[Model]) -> Model | None:
     if len(sample) == 1:  # Permittivity
         return sample[0]
     elif len(sample) >= 2:
-        return MultilayerModel(sample, eff_pol_n)
+        return MultilayerModel(sample, sigma)
     else:
         return None
 
@@ -135,6 +135,13 @@ def eff_pol_n(sample, **kwargs):
 
 def eff_pol(sample, **kwargs):
     return snompy.fdm.eff_pol(sample=sample, r_tip=30e-9, L_tip=350e-9, method="Q_ave")
+
+
+def sigma(sample, **kwargs):
+    alpha_eff = eff_pol_n(sample)
+    r_coef = sample.refl_coef(theta_in=np.deg2rad(60))
+    c_r = 0.3  # Experimental weighting factor
+    return (1 + c_r * r_coef) ** 2 * alpha_eff
 
 
 class MultilayerModel(Model):
