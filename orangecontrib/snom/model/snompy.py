@@ -4,7 +4,7 @@ from collections.abc import Iterable, Generator
 
 import numpy as np
 import snompy
-from lmfit import Model
+from lmfit import Model, CompositeModel
 
 
 # Wrapping existing function, so re-using "A_j" notation (for now).
@@ -66,8 +66,8 @@ class Reference:
     """Define the start of the reference sample"""
 
 
-def compose_layer(m_iter: Iterable[Model]) -> Generator[Reference | Model, Any, None]:
-    """Compose a layer from an interator of models, stopping at Interface"""
+def iter_layer(m_iter: Iterable[Model]) -> Generator[Reference | Model, Any, None]:
+    """Yield a layer from an interator of models, stopping at Interface"""
     for m in m_iter:
         if isinstance(m, Interface):
             break
@@ -77,24 +77,36 @@ def compose_layer(m_iter: Iterable[Model]) -> Generator[Reference | Model, Any, 
         yield m
 
 
-def compose_sample(m_iter: Iterable[Model]) -> Model:
-    """Compose a sample from an interator of models, stopping at Reference or end"""
+def compose_layer(m_iter: Iterable[Model]) -> Generator[Model, Any, None]:
+    """Compose layers from an interator of models, stopping at Reference or end"""
     while True:
-        sample = list(compose_layer(m_iter))
-        if len(sample) == 0 or any(isinstance(m, Reference) for m in sample):
+        layer = list(iter_layer(m_iter))
+        if len(layer) == 0 or any(isinstance(m, Reference) for m in layer):
             break
-        yield reduce(lambda x, y: x + y, sample)
+        yield reduce(lambda x, y: x + y, layer)
+
+
+def compose_sample(m_iter: Iterable[Model]) -> Model | None:
+    sample = list(compose_layer(m_iter))
+    if len(sample) == 1:  # Permittivity
+        return sample[0]
+    elif len(sample) == 2:  # Bulk (single interface)
+        return CompositeModel(sample[0], sample[1], eff_pol)
+    elif len(sample) > 2:  # Multilayer
+        raise NotImplementedError
+    else:
+        return None
 
 
 def compose_model(m_list: list[Model]) -> Model:
     """"""
     m_iter = iter(m_list)
-    sample = list(compose_sample(m_iter))
-    reference = list(compose_sample(m_iter))
-    if len(reference) == 0:
-        if len(sample) == 1:
-            return sample[0]
-    # return CompositeModel(reference[0], reference[1], eff_pol)
+    sample = compose_sample(m_iter)
+    reference = compose_sample(m_iter)
+    if reference is None:
+        return sample
+    else:
+        return sample / reference
 
 
 def eff_pol(left, right):

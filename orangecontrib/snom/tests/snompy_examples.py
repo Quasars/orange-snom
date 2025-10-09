@@ -43,6 +43,9 @@ def snompy_t_dependent_spectra():
     alpha_eff_pmma = snompy.fdm.eff_pol_n(
         sample=sample_pmma, A_tip=A_tip, n=n, r_tip=r_tip, L_tip=L_tip, method=method
     )
+    yield snompy.fdm.eff_pol(
+        sample=sample_pmma, r_tip=r_tip, L_tip=L_tip, method=method
+    )
     r_coef_pmma = sample_pmma.refl_coef(theta_in=theta_in)
     sigma_pmma = (1 + c_r * r_coef_pmma) ** 2 * alpha_eff_pmma
 
@@ -67,6 +70,7 @@ snompy_t_dependent_spectra_keys = [
     "nu_vac",
     "eps_pmma",
     "eps_Au",
+    "alpha_eff_pmma_nomod",
     "alpha_eff_Au",
     "alpha_eff_Au_nomod",
     "eta_n",

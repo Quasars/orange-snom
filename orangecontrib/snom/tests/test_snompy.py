@@ -9,7 +9,7 @@ from orangecontrib.snom.model.snompy import (
     Interface,
     Reference,
     DrudePermittivityModel,
-    compose_sample,
+    compose_layer,
 )
 from orangecontrib.snom.tests.snompy_examples import (
     snompy_t_dependent_spectra_stepwise,
@@ -68,6 +68,16 @@ class TestSnompyModel(unittest.TestCase):
         test_plot_complex({'new_model': eval, 'snompy': snompy}, self.x)
         np.testing.assert_array_equal(eval, snompy)
 
+    def test_alpha_eff_pmma_nomod(self):
+        snompy = self.snompy_t_dependent_spectra['alpha_eff_pmma_nomod']
+        model = compose_model(self.model_list[:5])
+        model_result = model.fit(
+            np.ones_like(self.x), params=self.make_params(model), x=self.x
+        )
+        eval = np.broadcast_to(model_result.eval(x=self.x), self.x.shape)
+        test_plot_complex({'new_model': eval, 'snompy': snompy}, self.x)
+        np.testing.assert_array_equal(eval, snompy)
+
     def test_alpha_eff_Au_nomod(self):
         snompy = self.snompy_t_dependent_spectra['alpha_eff_Au_nomod']
         model = compose_model(self.model_list[6:9])
@@ -89,7 +99,7 @@ class TestSnompyModel(unittest.TestCase):
     #     test_plot_complex({'new_model': eta_n, 'snompy': snompy_eta_n}, x)
     #     np.testing.assert_array_equal(eta_n, snompy_eta_n)
 
-    def test_compose_sample(self):
+    def test_compose_layer(self):
         """Test the sample / reference compose / split from a model list"""
         model_list = [
             0,
@@ -114,8 +124,8 @@ class TestSnompyModel(unittest.TestCase):
             15,
         ]
         m_iter = iter(model_list)
-        sample = list(compose_sample(m_iter))
-        reference = list(compose_sample(m_iter))
+        sample = list(compose_layer(m_iter))
+        reference = list(compose_layer(m_iter))
         assert sample == [6, 4]  # [0+1+2+3, 4]
         assert reference == [45, 54]  # [7+8+9+10+11, 12+13+14+15]
 
