@@ -187,7 +187,7 @@ class MultilayerModel(Model):
         # the unique ``independent_vars`` of the left and right model are
         # combined to ``independent_vars`` of the ``CompositeModel``
         if 'independent_vars' not in kws:
-            ivars = reduce(lambda x, y: x + y, (m.param_names for m in models))
+            ivars = reduce(lambda x, y: x + y, (m.independent_vars for m in models))
             kws['independent_vars'] = list(np.unique(ivars))
         if 'nan_policy' not in kws:
             kws['nan_policy'] = models[0].nan_policy
