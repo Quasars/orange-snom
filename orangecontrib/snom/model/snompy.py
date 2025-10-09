@@ -254,10 +254,10 @@ class MultilayerModel(Model):
         return reduce(lambda x, y: x + y, (m.components for m in self.models))
 
     def _get_state(self):
-        return (self.left._get_state(), self.right._get_state(), self.op.__name__)
+        return ([m._get_state() for m in self.models], None, self.op.__name__)
 
     def _set_state(self, state, funcdefs=None):
-        return _buildmodel(state, funcdefs=funcdefs)
+        return _buildmultilayermodel(state, funcdefs=funcdefs)
 
     def _make_all_args(self, params=None, **kwargs):
         """Generate **all** function arguments for all functions."""
@@ -267,7 +267,7 @@ class MultilayerModel(Model):
         return out
 
 
-def _buildmodel(state, funcdefs=None):
+def _buildmultilayermodel(state, funcdefs=None):
     """Build Model from saved state.
 
     Intended for internal use only.
@@ -275,6 +275,8 @@ def _buildmodel(state, funcdefs=None):
     """
     if len(state) != 3:
         raise ValueError("Cannot restore Model")
+    if not isinstance(state[0], list):
+        raise ValueError("Cannot restore MultilayerModel")
     known_funcs = {}
     for fname in lineshapes.functions:
         fcn = getattr(lineshapes, fname, None)
@@ -285,8 +287,9 @@ def _buildmodel(state, funcdefs=None):
     else:
         known_funcs.update(funcdefs)
 
-    left, right, op = state
-    if op is None and right is None:
+    model_states, _, op = state
+    if op is None and len(model_states) == 1:
+        left = model_states[0]
         if isinstance(left, tuple) and len(left) == 9:
             (fname, func, name, prefix, ivars, pnames, phints, nan_policy, opts) = left
         elif isinstance(left, dict) and 'version' in left:
@@ -337,6 +340,5 @@ def _buildmodel(state, funcdefs=None):
             model.set_param_hint(name, **hint)
         return model
     else:
-        lmodel = _buildmodel(left, funcdefs=funcdefs)
-        rmodel = _buildmodel(right, funcdefs=funcdefs)
-        return MultilayerModel(lmodel, rmodel, getattr(operator, op))
+        models = [_buildmultilayermodel(m, funcdefs=funcdefs) for m in model_states]
+        return MultilayerModel(models, getattr(operator, op))
