@@ -2,6 +2,7 @@ from functools import reduce
 from typing import Any
 from collections.abc import Iterable, Generator
 
+import numpy as np
 import snompy
 from lmfit import Model
 
@@ -90,5 +91,19 @@ def compose_model(m_list: list[Model]) -> Model:
     m_iter = iter(m_list)
     sample = list(compose_sample(m_iter))
     reference = list(compose_sample(m_iter))
+    if len(reference) == 0:
+        if len(sample) == 1:
+            return sample[0]
+    # return CompositeModel(reference[0], reference[1], eff_pol)
 
-    return sample, reference
+
+def eff_pol(left, right):
+    eps_air = left
+    eps_Au = right  # noqa N806
+    nu_vac = np.linspace(1680, 1800, 128) * 1e2
+    sample_Au = snompy.bulk_sample(  # noqa N806
+        eps_sub=eps_Au, eps_env=eps_air, nu_vac=nu_vac
+    )
+    return snompy.fdm.eff_pol(
+        sample=sample_Au, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
+    )

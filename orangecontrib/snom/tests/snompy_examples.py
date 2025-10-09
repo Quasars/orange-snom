@@ -15,6 +15,7 @@ def snompy_t_dependent_spectra():
     theta_in = np.deg2rad(60)  # Light angle of incidence
     c_r = 0.3  # Experimental weighting factor
     nu_vac = np.linspace(1680, 1800, 128) * 1e2  # Vacuum wavenumber
+    yield nu_vac
     method = "Q_ave"  # The FDM method to use
 
     # Semi-infinite superstrate and substrate
@@ -25,6 +26,7 @@ def snompy_t_dependent_spectra():
     eps_pmma = snompy.sample.lorentz_perm(
         nu_vac, nu_j=1738e2, gamma_j=20e2, A_j=4.2e8, eps_inf=2
     )
+    yield eps_pmma
     t_pmma = np.geomspace(1, 35, 32) * 1e-9  # A range of thicknesses
     sample_pmma = snompy.Sample(
         eps_stack=(eps_air, eps_pmma, eps_Si),
@@ -34,6 +36,7 @@ def snompy_t_dependent_spectra():
 
     # Model of Au dielectric function from ref [2] below
     eps_Au = snompy.sample.drude_perm(nu_vac, nu_plasma=7.25e6, gamma=2.16e4)
+    yield eps_Au
     sample_Au = snompy.bulk_sample(eps_sub=eps_Au, eps_env=eps_air, nu_vac=nu_vac)
 
     # Measurement
@@ -47,10 +50,33 @@ def snompy_t_dependent_spectra():
     alpha_eff_Au = snompy.fdm.eff_pol_n(
         sample=sample_Au, A_tip=A_tip, n=n, r_tip=r_tip, L_tip=L_tip, method=method
     )
+    yield alpha_eff_Au
+    yield snompy.fdm.eff_pol(
+        sample=sample_Au, r_tip=r_tip, L_tip=L_tip, method=method
+    )
     r_coef_Au = sample_Au.refl_coef(theta_in=theta_in)
     sigma_Au = (1 + c_r * r_coef_Au) ** 2 * alpha_eff_Au
 
     # Normalised complex scattering
     eta_n = sigma_pmma / sigma_Au
     # fmt: on
-    return eta_n
+    yield eta_n
+
+
+snompy_t_dependent_spectra_keys = [
+    "nu_vac",
+    "eps_pmma",
+    "eps_Au",
+    "alpha_eff_Au",
+    "alpha_eff_Au_nomod",
+    "eta_n",
+]
+
+
+def snompy_t_dependent_spectra_stepwise():
+    return {
+        k: v
+        for k, v in zip(
+            snompy_t_dependent_spectra_keys, snompy_t_dependent_spectra(), strict=True
+        )
+    }
