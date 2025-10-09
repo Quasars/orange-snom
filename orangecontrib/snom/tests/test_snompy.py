@@ -1,4 +1,5 @@
 import unittest
+from functools import reduce, partial
 
 import numpy as np
 from lmfit.models import ConstantModel
@@ -10,6 +11,7 @@ from orangecontrib.snom.model.snompy import (
     Reference,
     DrudePermittivityModel,
     compose_layer,
+    MultilayerModel,
 )
 from orangecontrib.snom.tests.snompy_examples import (
     snompy_t_dependent_spectra_stepwise,
@@ -48,56 +50,31 @@ class TestSnompyModel(unittest.TestCase):
             dp9_eps_inf={'value': 1, 'vary': False},
         )
 
-    def test_eps_pmma(self):
-        snompy = self.snompy_t_dependent_spectra['eps_pmma']
-        model = compose_model([self.model_list[2]])
-        model_result = model.fit(
-            np.ones_like(self.x), params=self.make_params(model), x=self.x
-        )
-        eval = np.broadcast_to(model_result.eval(x=self.x), self.x.shape)
-        test_plot_complex({'new_model': eval, 'snompy': snompy}, self.x)
-        np.testing.assert_array_equal(eval, snompy)
-
-    def test_eps_Au(self):
-        snompy = self.snompy_t_dependent_spectra['eps_Au']
-        model = compose_model([self.model_list[8]])
-        model_result = model.fit(
-            np.ones_like(self.x), params=self.make_params(model), x=self.x
-        )
-        eval = np.broadcast_to(model_result.eval(x=self.x), self.x.shape)
-        test_plot_complex({'new_model': eval, 'snompy': snompy}, self.x)
-        np.testing.assert_array_equal(eval, snompy)
-
-    def test_alpha_eff_pmma_nomod(self):
-        snompy = self.snompy_t_dependent_spectra['alpha_eff_pmma_nomod']
-        model = compose_model(self.model_list[:5])
-        model_result = model.fit(
-            np.ones_like(self.x), params=self.make_params(model), x=self.x
-        )
-        eval = np.broadcast_to(model_result.eval(x=self.x), self.x.shape)
-        test_plot_complex({'new_model': eval, 'snompy': snompy}, self.x)
-        np.testing.assert_array_equal(eval, snompy)
-
-    def test_alpha_eff_Au_nomod(self):
-        snompy = self.snompy_t_dependent_spectra['alpha_eff_Au_nomod']
-        model = compose_model(self.model_list[6:9])
-        model_result = model.fit(
-            np.ones_like(self.x), params=self.make_params(model), x=self.x
-        )
-        eval = np.broadcast_to(model_result.eval(x=self.x), self.x.shape)
-        test_plot_complex({'new_model': eval, 'snompy': snompy}, self.x)
-        np.testing.assert_array_equal(eval, snompy)
-
-    # def test_fdm_pmma_single(self):
-    #     """Tests the model code generates the same output as the PMMA example"""
-    #     snompy_eta_n = snompy_t_dependent_spectra()
-    #     model = compose_model(model_list)
-    #
-    #     v = np.ones_like(x)  # not really fitting, since all parameters are fixed
-    #     model_result = model.fit(v, params=parameters, x=x)
-    #     eta_n = np.broadcast_to(model_result.eval(x=x), x.shape)
-    #     test_plot_complex({'new_model': eta_n, 'snompy': snompy_eta_n}, x)
-    #     np.testing.assert_array_equal(eta_n, snompy_eta_n)
+    def test_fdm_pmma_single(self):
+        """Tests the model code generates the same output as the PMMA example, stepwise"""
+        submodels = {
+            "eps_pmma": self.model_list[2:3],
+            "eps_Au": self.model_list[8:9],
+            "alpha_eff_pmma_nomod": self.model_list[:5],
+            # "alpha_eff_Au":
+            "alpha_eff_Au_nomod": self.model_list[6:9],
+            "eta_n": self.model_list,
+        }
+        for step, snompy in self.snompy_t_dependent_spectra.items():
+            with self.subTest(msg=f"Testing step {step}"):
+                model = compose_model(submodels[step])
+                model_result = model.fit(
+                    np.ones_like(self.x), params=self.make_params(model), x=self.x
+                )
+                new_eval = np.broadcast_to(model_result.eval(x=self.x), self.x.shape)
+                try:
+                    np.testing.assert_array_equal(new_eval, snompy)
+                except AssertionError:
+                    # Plot on failure
+                    plot_complex(
+                        {'new_model': new_eval, 'snompy': snompy}, self.x, title=step
+                    )
+                    raise
 
     def test_compose_layer(self):
         """Test the sample / reference compose / split from a model list"""
@@ -130,7 +107,7 @@ class TestSnompyModel(unittest.TestCase):
         assert reference == [45, 54]  # [7+8+9+10+11, 12+13+14+15]
 
 
-def test_plot_complex(array_d, nu_vac):
+def plot_complex(array_d, nu_vac, title=""):
     from matplotlib import pyplot as plt
 
     # Plot output
@@ -149,6 +126,49 @@ def test_plot_complex(array_d, nu_vac):
         ylabel=r"$\phi_{" r"}$ / radians",
         xlim=(nu_per_cm.max(), nu_per_cm.min()),
     )
+    plt.title(title)
     fig.tight_layout()
     plt.legend()
     plt.show(block=False)
+
+
+class TestMultilayerModel(unittest.TestCase):
+    def test_multilayer_model_sum(self):
+        """Simple test for multilayer model with np.sum()"""
+        models = [
+            ConstantModel(name="Air", prefix="const1_"),
+            LorentzianPermittivityModel(name="PMMA", prefix="lp3_"),
+            ConstantModel(name="Si", prefix="const5_"),
+        ]
+        composite_model = reduce(lambda x, y: x + y, models)
+        np_sum_axis = partial(np.sum, axis=0)
+        multilayer_model = MultilayerModel(models, np_sum_axis)
+        # Attributes
+        assert composite_model.components == multilayer_model.components
+        assert composite_model.independent_vars == multilayer_model.independent_vars
+        assert composite_model.param_names == multilayer_model.param_names
+        # Eval
+        x = np.linspace(1680, 1800, 10) * 1e2
+
+        model_evals = []
+        for model in models:
+            result = model.fit(
+                np.ones_like(x), params=TestSnompyModel.make_params(model), x=x
+            )
+            model_evals.append(np.broadcast_to(result.eval(x=x), x.shape))
+        np_sum_eval = np.sum(model_evals, axis=0)
+        reduce_add_eval = reduce(lambda x, y: x + y, model_evals)
+        np.testing.assert_array_equal(np_sum_eval, reduce_add_eval)
+
+        composite_result = composite_model.fit(
+            np.ones_like(x), params=TestSnompyModel.make_params(composite_model), x=x
+        )
+        composite_eval = np.broadcast_to(composite_result.eval(x=x), x.shape)
+        np.testing.assert_array_equal(composite_eval, reduce_add_eval)
+
+        multilayer_result = multilayer_model.fit(
+            np.ones_like(x), params=TestSnompyModel.make_params(multilayer_model), x=x
+        )
+        multilayer_eval = np.broadcast_to(multilayer_result.eval(x=x), x.shape)
+        np.testing.assert_array_equal(multilayer_eval, np_sum_eval)
+        np.testing.assert_array_equal(composite_eval, multilayer_eval)
