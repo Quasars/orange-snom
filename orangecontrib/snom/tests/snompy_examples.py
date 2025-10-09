@@ -42,9 +42,10 @@ def snompy_t_dependent_spectra():
     alpha_eff_pmma = snompy.fdm.eff_pol_n(
         sample=sample_pmma, A_tip=A_tip, n=n, r_tip=r_tip, L_tip=L_tip, method=method
     )
-    yield snompy.fdm.eff_pol(
-        sample=sample_pmma, r_tip=r_tip, L_tip=L_tip, method=method
-    )[-1]
+    yield alpha_eff_pmma[-1]
+    # yield snompy.fdm.eff_pol(
+    #     sample=sample_pmma, r_tip=r_tip, L_tip=L_tip, method=method
+    # )[-1]
     r_coef_pmma = sample_pmma.refl_coef(theta_in=theta_in)
     sigma_pmma = (1 + c_r * r_coef_pmma) ** 2 * alpha_eff_pmma
 
@@ -53,9 +54,9 @@ def snompy_t_dependent_spectra():
         sample=sample_Au, A_tip=A_tip, n=n, r_tip=r_tip, L_tip=L_tip, method=method
     )
     yield alpha_eff_Au
-    yield snompy.fdm.eff_pol(
-        sample=sample_Au, r_tip=r_tip, L_tip=L_tip, method=method
-    )
+    # yield snompy.fdm.eff_pol(
+    #     sample=sample_Au, r_tip=r_tip, L_tip=L_tip, method=method
+    # )
     r_coef_Au = sample_Au.refl_coef(theta_in=theta_in)
     sigma_Au = (1 + c_r * r_coef_Au) ** 2 * alpha_eff_Au
 
@@ -68,9 +69,10 @@ def snompy_t_dependent_spectra():
 snompy_t_dependent_spectra_keys = [
     "eps_pmma",
     "eps_Au",
-    "alpha_eff_pmma_nomod",
+    "alpha_eff_pmma",
+    # "alpha_eff_pmma_nomod",
     "alpha_eff_Au",
-    "alpha_eff_Au_nomod",
+    # "alpha_eff_Au_nomod",
     "eta_n",
 ]
 
