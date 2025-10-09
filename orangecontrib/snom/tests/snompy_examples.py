@@ -45,7 +45,7 @@ def snompy_t_dependent_spectra():
     )
     yield snompy.fdm.eff_pol(
         sample=sample_pmma, r_tip=r_tip, L_tip=L_tip, method=method
-    )
+    )[-1]
     r_coef_pmma = sample_pmma.refl_coef(theta_in=theta_in)
     sigma_pmma = (1 + c_r * r_coef_pmma) ** 2 * alpha_eff_pmma
 
