@@ -5,44 +5,17 @@ from lmfit import Model, Parameters
 from orangecontrib.spectroscopy.widgets.owpeakfit import unique_prefix
 
 
-def load_list(saved) -> list[tuple[Any, dict[str, Any]]]:
-    """Load a preprocessor list from a dict."""
-    preprocessors = saved.get("preprocessors", [])
+def load_list(preprocessors) -> list[dict[str, Any]]:
+    """Load a saved preprocessor list from a dict."""
     from orangecontrib.snom.widgets.owsnompy import PREPROCESSORS
 
     qname2ppdef = {ppdef.qualname: ppdef for ppdef in PREPROCESSORS}
 
     pp_list = []
-
-    # def dropMimeData(data, action, row, column, parent):
-    #     if data.hasFormat("application/x-qwidget-ref") and \
-    #             action == Qt.CopyAction:
-    #         qname = bytes(data.data("application/x-qwidget-ref")).decode()
-    #
-    #         ppdef = self._qname2ppdef[qname]
-    #         item = QStandardItem(ppdef.description.title)
-    #         item.setData({}, ParametersRole)
-    #         item.setData(ppdef.description.title, Qt.DisplayRole)
-    #         item.setData(ppdef, DescriptionRole)
-    #         self.preprocessormodel.insertRow(row, [item])
-    #         return True
-    #     else:
-    #         return False
-    #
-    # model.dropMimeData = dropMimeData
-
     for qualname, params in preprocessors:
         pp_def = qname2ppdef[qualname]
-
-        # description = pp_def.description
-        # item = QStandardItem(description.title)
-        # item.setIcon(icon)
-        # item.setToolTip(description.summary)
-        # item.setData(pp_def, DescriptionRole)
-        # item.setData(params, ParametersRole)
-
         pp_list.append((pp_def, params))
-    # TODO do we actually use the qualname after this? might just need params
+
     return pp_list
 
 

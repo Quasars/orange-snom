@@ -164,7 +164,7 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
         self.show_info_anyway = show_info_anyway
         self.preview_data = None
         self.after_data = None
-        pp_def = master.save(master.preprocessormodel)
+        m_def = master.save(master.preprocessormodel)['preprocessors']
         if master.data is not None:
             # Clear markings to indicate preview is running
             refresh_integral_markings([], master.markings_list, master.curveplot)
@@ -172,7 +172,7 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
             # Pass preview data to widgets here as we don't use on_partial_result()
             for w in self.master.flow_view.widgets():
                 w.set_preview_data(data)
-            self.start(self.run_preview, data, pp_def, self.pool)
+            self.start(self.run_preview, data, m_def, self.pool)
         else:
             master.curveplot.set_data(None)
             master.curveplot_after.set_data(None)
@@ -216,12 +216,11 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
 
         orig_data = data
 
-        model_list, parameters = create_model_list(load_list(m_def))
-        model = compose_model(model_list)
-
         model_result = {}
         x = getx(data)
-        if data is not None and m_def is not None and len(m_def['preprocessors']) != 0:
+        if data is not None and m_def is not None and len(m_def) != 0:
+            model_list, _ = create_model_list(load_list(m_def))
+            model = compose_model(model_list)
             for row in data:
                 progress_interrupt(0)
                 res = pool.schedule(pool_fit2, (row.x, m_def, x))
@@ -332,7 +331,7 @@ class OWSnomModel(OWPeakFit):
         )
 
     def create_outputs(self):
-        m_def = self.save(self.preprocessormodel)
+        m_def = self.save(self.preprocessormodel)['preprocessors']
         self.start(self.run_task, self.data, m_def)
 
     @staticmethod
@@ -350,11 +349,8 @@ class OWSnomModel(OWPeakFit):
             time.sleep(0.010)
             progress_interrupt(0)
 
-        # model_list, parameters = create_model_list(load_list(m_def))
-        # model = compose_model(model_list)
-
         data_fits = data_anno = data_resid = None
-        if data is not None and m_def is not None and len(m_def['preprocessors']) != 0:
+        if data is not None and m_def is not None and len(m_def) != 0:
             orig_data = data
             output = []
             x = getx(data)
