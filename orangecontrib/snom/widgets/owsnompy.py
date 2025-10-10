@@ -40,6 +40,9 @@ from orangecontrib.snom.model.snompy import (
     compose_model,
     LorentzianPermittivityModel,
     DrudePermittivityModel,
+    FiniteInterface,
+    Reference,
+    Interface,
 )
 
 
@@ -47,9 +50,39 @@ class StaticPermittivityEditor(ConstantModelEditor):
     name = "Static Permittivity"
 
 
-class InterfaceEditor(ConstantModelEditor):
+class PlaceholderEditor(ModelEditor):
+    category = "Placeholder"
+    icon = "Continuize.svg"
+
+    @classmethod
+    def createinstance(cls, prefix, form=None):
+        return cls.model()
+
+    @staticmethod
+    def model_parameters():
+        return ()
+
+    @staticmethod
+    def model_lines():
+        return ()
+
+
+class InterfaceEditor(PlaceholderEditor):
     name = "Interface"
+    model = Interface
     prefix_generic = 'if'
+
+
+class FiniteInterfaceEditor(ConstantModelEditor):
+    name = "Finite Interface"
+    model = FiniteInterface
+    prefix_generic = 'fif'
+
+
+class ReferenceEditor(PlaceholderEditor):
+    name = "Reference"
+    model = Reference
+    prefix_generic = 'ref'
 
 
 class LorentzianPermittivityEditor(ModelEditor):
@@ -79,10 +112,9 @@ class DrudePermittivityEditor(ModelEditor):
     def model_parameters():
         return 'nu_plasma', 'gamma', 'eps_inf'
 
-    # Plotting the plasma wavenumber doesn't make sense
-    # @staticmethod
-    # def model_lines():
-    #     return ('nu_plasma',)
+    @staticmethod
+    def model_lines():
+        return ()
 
 
 def pack_model_editor(editor):
@@ -102,6 +134,9 @@ PREPROCESSORS = [
     for e in [
         LorentzianPermittivityEditor,
         StaticPermittivityEditor,
+        InterfaceEditor,
+        FiniteInterfaceEditor,
+        ReferenceEditor,
     ]
 ]
 
@@ -294,21 +329,19 @@ def add_fixed_params(editor, params: dict):
         editor.set_hint(k, 'vary', 'fixed')
 
 
-if __name__ == "__main__":  # pragma: no cover
-    data = Cut(lowlim=1680, highlim=1800)(Table("collagen")[0:1])
-    wp = WidgetPreview(OWSnomModel)
-    wp.run(data, no_exec=True, no_exit=True)
-    # Demo PMMA model
+def demo_pmma_model(widget):
+    """Demo PMMA model from t_dependent_spectra.py"""
     # Air
     add_fixed_params(
-        add_editor(StaticPermittivityEditor, wp.widget),
+        add_editor(StaticPermittivityEditor, widget),
         {
             'c': 1,
         },
     )
     # PMMA
+    add_fixed_params(add_editor(FiniteInterfaceEditor, widget), {'c': 35 * 1e-9})
     add_fixed_params(
-        add_editor(LorentzianPermittivityEditor, wp.widget),
+        add_editor(LorentzianPermittivityEditor, widget),
         {
             'nu_j': 1738,
             'A_j': 100000,
@@ -316,13 +349,33 @@ if __name__ == "__main__":  # pragma: no cover
             'eps_inf': 2,
         },
     )
+    add_editor(InterfaceEditor, widget)
     # Si permitivitty in the mid-infrared
     add_fixed_params(
-        add_editor(StaticPermittivityEditor, wp.widget),
+        add_editor(StaticPermittivityEditor, widget),
         {
             'c': 11.7,
         },
     )
+    add_editor(ReferenceEditor, widget)
+    add_fixed_params(add_editor(StaticPermittivityEditor, widget), {'c': 1})
+    add_editor(InterfaceEditor, widget)
+    add_fixed_params(
+        add_editor(DrudePermittivityEditor, widget),
+        {
+            'nu_plasma': 7.25e6,
+            'gamma': 2.16e4,
+            'eps_inf': 1,
+        },
+    )
+
+
+if __name__ == "__main__":  # pragma: no cover
+    data = Cut(lowlim=1680, highlim=1800)(Table("collagen")[0:1])
+    wp = WidgetPreview(OWSnomModel)
+    wp.run(data, no_exec=True, no_exit=True)
+    # Demo PMMA model
+    demo_pmma_model(wp.widget)
     wp.widget.show_preview(show_info_anyway=True)
     # Rest of run()
     exit_code = wp.exec_widget()

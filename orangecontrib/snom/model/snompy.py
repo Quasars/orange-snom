@@ -5,7 +5,7 @@ from collections.abc import Iterable, Generator
 
 import numpy as np
 import snompy
-from lmfit import Model
+from lmfit import Model, Parameters
 from lmfit.models import ConstantModel
 
 
@@ -60,7 +60,14 @@ class DrudePermittivityModel(Model):
         super().__init__(drude_perm, **kwargs)
 
 
-class Interface:
+class Placeholder:
+    """Placeholder for multilayer / sample model definition."""
+
+    def make_params(self):
+        return Parameters()
+
+
+class Interface(Placeholder):
     """Define an interface between two sample layers
 
     By definition, the _next_ layer down is infinite
@@ -75,7 +82,7 @@ class FiniteInterface(ConstantModel, Interface):
     """
 
 
-class Reference:
+class Reference(Placeholder):
     """Define the start of the reference sample"""
 
 
