@@ -9,10 +9,12 @@ from Orange.widgets import gui
 from Orange.widgets.data.owpreprocess import PreprocessAction, Description, icon_path
 from Orange.widgets.data.utils.preprocess import DescriptionRole
 from Orange.widgets.utils.concurrent import TaskState
-from lmfit import Model, Parameters
+
 from lmfit.model import ModelResult
+from orangecontrib.spectroscopy.preprocess.utils import replacex
 from orangecontrib.spectroscopy.widgets.owpreprocess import InterruptException
-from orangecontrib.spectroscopy.widgets.peakfit_compute import (
+
+from orangecontrib.snom.widgets.snompy_compute import (
     pool_fit2,
 )
 from orangewidget.utils.widgetpreview import WidgetPreview
@@ -36,6 +38,7 @@ from orangecontrib.spectroscopy.widgets.peak_editors import (
     ConstantModelEditor,
 )
 
+
 from orangecontrib.snom.model.snompy import (
     compose_model,
     LorentzianPermittivityModel,
@@ -44,6 +47,7 @@ from orangecontrib.snom.model.snompy import (
     Reference,
     Interface,
 )
+from orangecontrib.snom.widgets.snompy_util import create_model_list, load_list
 
 
 class StaticPermittivityEditor(ConstantModelEditor):
@@ -133,6 +137,7 @@ PREPROCESSORS = [
     pack_model_editor(e)
     for e in [
         LorentzianPermittivityEditor,
+        DrudePermittivityEditor,
         StaticPermittivityEditor,
         InterfaceEditor,
         FiniteInterfaceEditor,
@@ -142,6 +147,29 @@ PREPROCESSORS = [
 
 
 class ComplexPeakPreviewRunner(PeakPreviewRunner):
+    def show_preview(self, show_info_anyway=False):
+        """Shows preview and also passes preview data to the widgets
+        Re-implmented to change how pp_def / m_def is generated
+        """
+        master = self.master
+        self.preview_pos = master.flow_view.preview_n()
+        self.last_partial = None
+        self.show_info_anyway = show_info_anyway
+        self.preview_data = None
+        self.after_data = None
+        pp_def = master.save(master.preprocessormodel)
+        if master.data is not None:
+            # Clear markings to indicate preview is running
+            refresh_integral_markings([], master.markings_list, master.curveplot)
+            data = master.sample_data(master.data)
+            # Pass preview data to widgets here as we don't use on_partial_result()
+            for w in self.master.flow_view.widgets():
+                w.set_preview_data(data)
+            self.start(self.run_preview, data, pp_def, self.pool)
+        else:
+            master.curveplot.set_data(None)
+            master.curveplot_after.set_data(None)
+
     def on_done(self, result):
         orig_data, after_data, model_result = result
         final_preview = self.preview_pos is None
@@ -181,15 +209,15 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
 
         orig_data = data
 
-        model_list, parameters = create_model_list(m_def)
+        model_list, parameters = create_model_list(load_list(m_def))
         model = compose_model(model_list)
 
         model_result = {}
         x = getx(data)
-        if data is not None and model is not None:
+        if data is not None and len(m_def) != 0:
             for row in data:
                 progress_interrupt(0)
-                res = pool.schedule(pool_fit2, (row.x, model.dumps(), parameters, x))
+                res = pool.schedule(pool_fit2, (row.x, m_def, x))
                 while not res.done():
                     try:
                         progress_interrupt(0)
@@ -207,7 +235,7 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
                         raise
                     concurrent.futures.wait([res], 0.05)
                 fits = res.result()
-                model_result[row.id] = ModelResult(model, parameters).loads(fits)
+                model_result[row.id] = ModelResult(model, fits)
 
         progress_interrupt(0)
         return orig_data, data, model_result
@@ -297,81 +325,66 @@ class OWSnomModel(OWPeakFit):
         )
 
 
-def create_model_list(m_def: list[None]) -> tuple[list[Model], Parameters]:
-    """create_composite_model() but returns list of models instead"""
-    # TODO move to owpeakfit, split create_composite_model up
-    n = len(m_def)
-    m_list = []
-    parameters = Parameters()
-    for i in range(n):
-        item = m_def[i]
-        m = create_model(item, i)
-        p = prepare_params(item, m)
-        m_list.append(m)
-        parameters.update(p)
-
-    model = None
-    if m_list:
-        model = m_list
-
-    return model, parameters
-
-
-def add_editor(cls, widget):
-    widget.add_preprocessor(pack_model_editor(cls))
-    editor = widget.flow_view.widgets()[-1]
-    return editor
-
-
-def add_fixed_params(editor, params: dict):
-    for k, v in params.items():
-        editor.set_hint(k, 'value', v)
-        editor.set_hint(k, 'vary', 'fixed')
-
-
 def demo_pmma_model(widget):
     """Demo PMMA model from t_dependent_spectra.py"""
-    # Air
-    add_fixed_params(
-        add_editor(StaticPermittivityEditor, widget),
-        {
-            'c': 1,
-        },
-    )
-    # PMMA
-    add_fixed_params(add_editor(FiniteInterfaceEditor, widget), {'c': 35 * 1e-9})
-    add_fixed_params(
-        add_editor(LorentzianPermittivityEditor, widget),
-        {
-            'nu_j': 1738,
-            'A_j': 100000,
-            'gamma_j': 20,
-            'eps_inf': 2,
-        },
-    )
-    add_editor(InterfaceEditor, widget)
-    # Si permitivitty in the mid-infrared
-    add_fixed_params(
-        add_editor(StaticPermittivityEditor, widget),
-        {
-            'c': 11.7,
-        },
-    )
-    add_editor(ReferenceEditor, widget)
-    add_fixed_params(add_editor(StaticPermittivityEditor, widget), {'c': 1})
-    add_editor(InterfaceEditor, widget)
-    add_fixed_params(
-        add_editor(DrudePermittivityEditor, widget),
-        {
-            'nu_plasma': 7.25e6,
-            'gamma': 2.16e4,
-            'eps_inf': 1,
-        },
-    )
+    editors = {
+        'name': "",
+        'preprocessors': [
+            # Air
+            (
+                'orangecontrib.spectroscopy.widgets.owsnompy.const',
+                {
+                    'c': {'value': 1, 'vary': 'fixed'},
+                },
+            ),
+            # PMMA
+            (
+                'orangecontrib.spectroscopy.widgets.owsnompy.fif',
+                {'c': {'value': 35 * 1e-9, 'vary': 'fixed'}},
+            ),
+            (
+                'orangecontrib.spectroscopy.widgets.owsnompy.lp',
+                {
+                    'nu_j': {'value': 1738e2, 'vary': 'fixed'},
+                    'A_j': {'value': 4.2e8, 'vary': 'fixed'},
+                    'gamma_j': {'value': 20e2, 'vary': 'fixed'},
+                    'eps_inf': {'value': 2, 'vary': 'fixed'},
+                },
+            ),
+            # Si permitivitty in the mid-infrared
+            ('orangecontrib.spectroscopy.widgets.owsnompy.if', {}),
+            (
+                'orangecontrib.spectroscopy.widgets.owsnompy.const',
+                {
+                    'c': {'value': 11.7, 'vary': 'fixed'},
+                },
+            ),
+            # Au reference
+            # Air
+            ('orangecontrib.spectroscopy.widgets.owsnompy.ref', {}),
+            (
+                'orangecontrib.spectroscopy.widgets.owsnompy.const',
+                {'c': {'value': 1, 'vary': 'fixed'}},
+            ),
+            # Au
+            ('orangecontrib.spectroscopy.widgets.owsnompy.if', {}),
+            (
+                'orangecontrib.spectroscopy.widgets.owsnompy.dp',
+                {
+                    'nu_plasma': {'value': 7.25e6, 'vary': 'fixed'},
+                    'gamma': {'value': 2.16e4, 'vary': 'fixed'},
+                    'eps_inf': {'value': 1, 'vary': 'fixed'},
+                },
+            ),
+        ],
+    }
+    widget.set_model(widget.load(editors))
 
 
 if __name__ == "__main__":  # pragma: no cover
     data = Cut(lowlim=1680, highlim=1800)(Table("collagen")[0:1])
+    new_x = getx(data) * 100
+    data = replacex(data, new_x)
     wp = WidgetPreview(OWSnomModel)
     wp.run(data, no_exec=True, no_exit=True)
     # Demo PMMA model
