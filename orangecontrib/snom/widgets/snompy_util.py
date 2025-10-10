@@ -1,5 +1,6 @@
 from typing import Any
 
+from Orange.data import ContinuousVariable, Domain
 from lmfit import Model, Parameters
 from orangecontrib.spectroscopy.widgets.owpeakfit import unique_prefix
 
@@ -76,8 +77,23 @@ def create_model_list(m_def: list[None]) -> tuple[list[Model], Parameters]:
         m_list.append(m)
         parameters.update(p)
 
-    model = None
-    if m_list:
-        model = m_list
+    return m_list, parameters
 
-    return model, parameters
+
+def fit_results_table(output, model_result_dict, orig_data):
+    """Return best fit parameters as Orange.data.Table"""
+    prefixes = model_result_dict['components.prefixes']
+    var_names = model_result_dict['var_names']
+    features = []
+    for prefix in prefixes:
+        prefix = prefix.rstrip("_")
+        features.append(ContinuousVariable(name=f"{prefix} area"))
+        for param in [n for n in var_names if n.startswith(prefix)]:
+            features.append(ContinuousVariable(name=param.replace("_", " ")))
+    features.append(ContinuousVariable(name="Reduced chi-square"))
+
+    domain = Domain(features, orig_data.domain.class_vars, orig_data.domain.metas)
+    out = orig_data.transform(domain)
+    with out.unlocked_reference(out.X):
+        out.X = output
+    return out
