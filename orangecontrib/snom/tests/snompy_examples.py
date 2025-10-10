@@ -27,6 +27,7 @@ def snompy_t_dependent_spectra():
     )
     yield eps_pmma
     t_pmma = np.geomspace(1, 35, 32) * 1e-9  # A range of thicknesses
+    yield t_pmma
     sample_pmma = snompy.Sample(
         eps_stack=(eps_air, eps_pmma, eps_Si),
         t_stack=(t_pmma[:, np.newaxis],),
@@ -42,22 +43,22 @@ def snompy_t_dependent_spectra():
     alpha_eff_pmma = snompy.fdm.eff_pol_n(
         sample=sample_pmma, A_tip=A_tip, n=n, r_tip=r_tip, L_tip=L_tip, method=method
     )
-    # yield alpha_eff_pmma[-1]
-    # yield snompy.fdm.eff_pol(
-    #     sample=sample_pmma, r_tip=r_tip, L_tip=L_tip, method=method
-    # )[-1]
+    yield alpha_eff_pmma[-1]
+    yield snompy.fdm.eff_pol(
+        sample=sample_pmma, r_tip=r_tip, L_tip=L_tip, method=method
+    )
     r_coef_pmma = sample_pmma.refl_coef(theta_in=theta_in)
     sigma_pmma = (1 + c_r * r_coef_pmma) ** 2 * alpha_eff_pmma
-    yield sigma_pmma[-1]
+    yield sigma_pmma
 
     # Gold reference
     alpha_eff_Au = snompy.fdm.eff_pol_n(
         sample=sample_Au, A_tip=A_tip, n=n, r_tip=r_tip, L_tip=L_tip, method=method
     )
-    # yield alpha_eff_Au
-    # yield snompy.fdm.eff_pol(
-    #     sample=sample_Au, r_tip=r_tip, L_tip=L_tip, method=method
-    # )
+    yield alpha_eff_Au
+    yield snompy.fdm.eff_pol(
+        sample=sample_Au, r_tip=r_tip, L_tip=L_tip, method=method
+    )
     r_coef_Au = sample_Au.refl_coef(theta_in=theta_in)
     sigma_Au = (1 + c_r * r_coef_Au) ** 2 * alpha_eff_Au
     yield sigma_Au
@@ -65,17 +66,18 @@ def snompy_t_dependent_spectra():
     # Normalised complex scattering
     eta_n = sigma_pmma / sigma_Au
     # fmt: on
-    yield eta_n[-1]
+    yield eta_n
 
 
 snompy_t_dependent_spectra_keys = [
     "eps_pmma",
+    "t_pmma",
     "eps_Au",
-    # "alpha_eff_pmma",
-    # "alpha_eff_pmma_nomod",
+    "alpha_eff_pmma",
+    "alpha_eff_pmma_nomod",
     "sigma_pmma",
-    # "alpha_eff_Au",
-    # "alpha_eff_Au_nomod",
+    "alpha_eff_Au",
+    "alpha_eff_Au_nomod",
     "sigma_Au",
     "eta_n",
 ]

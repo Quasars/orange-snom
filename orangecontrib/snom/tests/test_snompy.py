@@ -22,7 +22,7 @@ class TestSnompyModel(unittest.TestCase):
         self.snompy_t_dependent_spectra = snompy_t_dependent_spectra_stepwise()
         self.model_list = [
             ConstantModel(name="Air", prefix="const1_"),
-            FiniteInterface(prefix="if2_"),
+            FiniteInterface(prefix="fif2_"),
             LorentzianPermittivityModel(name="PMMA", prefix="lp3_"),
             Interface(),
             ConstantModel(name="Si", prefix="const5_"),
@@ -38,7 +38,7 @@ class TestSnompyModel(unittest.TestCase):
         # Values from example
         return model.make_params(
             const1_c={'value': 1, 'vary': False},
-            if2_c={'value': 35 * 1e-9, 'vary': False},
+            fif2_c={'value': 35 * 1e-9, 'vary': False},
             lp3_nu_j={'value': 1738e2, 'vary': False},
             lp3_A_j={'value': 4.2e8, 'vary': False},
             lp3_gamma_j={'value': 20e2, 'vary': False},
@@ -64,7 +64,12 @@ class TestSnompyModel(unittest.TestCase):
             "eta_n": self.model_list,
         }
         for step, snompy in self.snompy_t_dependent_spectra.items():
+            if step not in submodels:
+                continue
             with self.subTest(msg=f"Testing step {step}"):
+                if len(snompy.shape) == 2:
+                    # Only compare row from thickness 35 * 1e-9
+                    snompy = snompy[-1]
                 model = compose_model(submodels[step])
                 model_result = model.fit(
                     np.ones_like(self.x), params=self.make_params(model), x=self.x
@@ -78,6 +83,32 @@ class TestSnompyModel(unittest.TestCase):
                         {'new_model': new_eval, 'snompy': snompy}, self.x, title=step
                     )
                     raise
+
+    def test_fdm_pmma_fit(self):
+        """Fit the snompy thickness-dependent PMMA to extract thickness"""
+        snompy = self.snompy_t_dependent_spectra["eta_n"][::4]
+        t_pmma = self.snompy_t_dependent_spectra['t_pmma'][::4]
+
+        model = compose_model(self.model_list)
+        parameters = self.make_params(model)
+        parameters['fif2_c'].set(vary=True)
+
+        t_fit = []
+
+        for s, t in zip(snompy, t_pmma, strict=True):
+            model_result = model.fit(s, params=parameters, x=self.x)
+            new_eval = np.broadcast_to(model_result.eval(x=self.x), self.x.shape)
+            best_t = model_result.best_values['fif2_c']
+            tvt = f"t_pmma: {t} t_fit: {best_t} diff: {t - best_t}"
+            t_fit.append(t)
+            try:
+                np.testing.assert_allclose(new_eval, s)
+            except AssertionError:
+                # Plot on failure
+                plot_complex({'new_model': new_eval, 'snompy': s}, self.x, title=tvt)
+                raise
+
+        np.testing.assert_allclose(np.asarray(t_fit), t_pmma)
 
     def test_compose_layer(self):
         """Test the sample / reference compose / split from a model list"""
