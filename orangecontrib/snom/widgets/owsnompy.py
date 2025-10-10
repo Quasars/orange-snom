@@ -4,7 +4,7 @@ import sys
 import time
 
 import numpy as np
-from Orange.data import Table
+from Orange.data import Table, Domain
 from Orange.widgets import gui
 from Orange.widgets.data.owpreprocess import PreprocessAction, Description, icon_path
 from Orange.widgets.data.utils.preprocess import DescriptionRole
@@ -16,6 +16,8 @@ from orangecontrib.spectroscopy.widgets.owpreprocess import InterruptException
 
 from orangecontrib.snom.widgets.snompy_compute import (
     pool_fit2,
+    pool_initializer,
+    pool_fit,
 )
 from orangewidget.utils.widgetpreview import WidgetPreview
 
@@ -32,6 +34,7 @@ from orangecontrib.spectroscopy.widgets.owpeakfit import (
     prepare_params,
     PeakPreviewRunner,
     unique_prefix,
+    N_PROCESSES,
 )
 from orangecontrib.spectroscopy.widgets.peak_editors import (
     ModelEditor,
@@ -47,7 +50,11 @@ from orangecontrib.snom.model.snompy import (
     Reference,
     Interface,
 )
-from orangecontrib.snom.widgets.snompy_util import create_model_list, load_list
+from orangecontrib.snom.widgets.snompy_util import (
+    create_model_list,
+    load_list,
+    fit_results_table,
+)
 
 
 class StaticPermittivityEditor(ConstantModelEditor):
@@ -214,7 +221,7 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
 
         model_result = {}
         x = getx(data)
-        if data is not None and len(m_def) != 0:
+        if data is not None and m_def is not None and len(m_def['preprocessors']) != 0:
             for row in data:
                 progress_interrupt(0)
                 res = pool.schedule(pool_fit2, (row.x, m_def, x))
@@ -323,6 +330,82 @@ class OWSnomModel(OWPeakFit):
         refresh_integral_markings(
             dis_angle, self.markings_list_after, self.curveplot_after
         )
+
+    def create_outputs(self):
+        m_def = self.save(self.preprocessormodel)
+        self.start(self.run_task, self.data, m_def)
+
+    @staticmethod
+    def run_task(data: Table, m_def, state: TaskState):
+        def progress_interrupt(i: float):
+            state.set_progress_value(i)
+            if state.is_interruption_requested():
+                raise InterruptException
+
+        # Protects against running the task in succession many times, as would
+        # happen when adding a preprocessor (there, commit() is called twice).
+        # Wait 100 ms before processing - if a new task is started in meanwhile,
+        # allow that is easily` cancelled.
+        for _ in range(10):
+            time.sleep(0.010)
+            progress_interrupt(0)
+
+        # model_list, parameters = create_model_list(load_list(m_def))
+        # model = compose_model(model_list)
+
+        data_fits = data_anno = data_resid = None
+        if data is not None and m_def is not None and len(m_def['preprocessors']) != 0:
+            orig_data = data
+            output = []
+            x = getx(data)
+            n = len(data)
+            fits = []
+            residuals = []
+
+            with multiprocessing.Pool(
+                processes=N_PROCESSES, initializer=pool_initializer, initargs=(m_def, x)
+            ) as p:
+                res = p.map_async(pool_fit, data.X, chunksize=1)
+
+                def done():
+                    try:
+                        return n - res._number_left * res._chunksize
+                    except AttributeError:
+                        return 0
+
+                while not res.ready():
+                    progress_interrupt(done() / n * 99)
+                    res.wait(0.05)
+
+                fitsr = res.get()
+
+            progress_interrupt(99)
+
+            for mrd, bpar, fitted, resid in fitsr:
+                model_results_dict = mrd
+                output.append(bpar)
+                fits.append(fitted)
+                residuals.append(resid)
+                progress_interrupt(99)
+            data = fit_results_table(np.vstack(output), model_results_dict, orig_data)
+            data_fits = orig_data.from_table_rows(orig_data, ...)  # a shallow copy
+            with data_fits.unlocked_reference(data_fits.X):
+                data_fits.X = np.vstack(fits)
+            data_resid = orig_data.from_table_rows(orig_data, ...)  # a shallow copy
+            with data_resid.unlocked_reference(data_resid.X):
+                data_resid.X = np.vstack(residuals)
+            dom_anno = Domain(
+                orig_data.domain.attributes,
+                orig_data.domain.class_vars,
+                orig_data.domain.metas + data.domain.attributes,
+            )
+            data_anno = orig_data.transform(dom_anno)
+            with data_anno.unlocked(data_anno.metas):
+                data_anno.metas[:, len(orig_data.domain.metas) :] = data.X
+
+        progress_interrupt(100)
+
+        return data, data_fits, data_resid, data_anno
 
 
 def demo_pmma_model(widget):
