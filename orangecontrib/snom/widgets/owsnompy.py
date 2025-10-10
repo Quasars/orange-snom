@@ -12,7 +12,11 @@ from Orange.widgets.utils.concurrent import TaskState
 
 from lmfit.model import ModelResult
 from orangecontrib.spectroscopy.preprocess.utils import replacex
-from orangecontrib.spectroscopy.widgets.owpreprocess import InterruptException
+from orangecontrib.spectroscopy.widgets.owpreprocess import (
+    InterruptException,
+    SpectralPreprocess,
+)
+from orangecontrib.spectroscopy.widgets.owspectra import SELECTONE
 
 from orangecontrib.snom.widgets.snompy_compute import (
     pool_fit2,
@@ -255,7 +259,12 @@ class OWSnomModel(OWPeakFit):
     BUTTON_ADD_LABEL = "Add term..."
 
     def __init__(self):
-        super().__init__()
+        self.markings_list = []
+        SpectralPreprocess.__init__(self)
+        self.curveplot.selection_type = SELECTONE
+        self.curveplot.select_at_least_1 = True
+        self.curveplot.view_average_menu.setEnabled(False)
+        self.curveplot.selection_changed.connect(self.redraw_integral)
 
         # Show _after (work-around for complex plotting)
         self.curveplot_after.show()
@@ -264,6 +273,7 @@ class OWSnomModel(OWPeakFit):
 
         # Custom preview running just to plot complex values
         self.preview_runner = ComplexPeakPreviewRunner(self)
+        self.preview_runner.preview_updated.connect(self.redraw_integral)
 
         # Model options
         gui.widgetBox(self.controlArea, "Model Options")
@@ -469,6 +479,7 @@ if __name__ == "__main__":  # pragma: no cover
     # Demo PMMA model
     demo_pmma_model(wp.widget)
     wp.widget.show_preview(show_info_anyway=True)
+    wp.widget.commit.deferred()
     # Rest of run()
     exit_code = wp.exec_widget()
     wp.tear_down()
