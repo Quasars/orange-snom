@@ -33,7 +33,6 @@ from orangecontrib.spectroscopy.preprocess.integrate import (
 from orangecontrib.spectroscopy.util import getx
 from orangecontrib.spectroscopy.widgets.owhyper import refresh_integral_markings
 from orangecontrib.spectroscopy.widgets.owpeakfit import (
-    OWPeakFit,
     create_model,
     prepare_params,
     PeakPreviewRunner,
@@ -59,6 +58,7 @@ from orangecontrib.snom.widgets.snompy_util import (
     load_list,
     fit_results_table,
 )
+from orangecontrib.snom.temp import FitPreprocess
 
 
 class StaticPermittivityEditor(ConstantModelEditor):
@@ -251,7 +251,7 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
         return orig_data, data, model_result
 
 
-class OWSnomModel(OWPeakFit):
+class OWSnomModel(FitPreprocess):
     name = "SNOM Model"
     description = "Model SNOM spectra with snompy"
 
