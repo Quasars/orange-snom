@@ -254,6 +254,7 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
 class OWSnomModel(FitPreprocess):
     name = "SNOM Model"
     description = "Model SNOM spectra with snompy"
+    icon = "icons/snompy.svg"
 
     PREPROCESSORS = PREPROCESSORS
     BUTTON_ADD_LABEL = "Add term..."
