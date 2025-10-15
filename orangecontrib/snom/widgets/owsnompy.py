@@ -3,12 +3,14 @@ import concurrent.futures
 import sys
 import time
 
+import Orange
 import numpy as np
 from Orange.data import Table, Domain
 from Orange.widgets import gui
 from Orange.widgets.data.owpreprocess import PreprocessAction, Description, icon_path
 from Orange.widgets.data.utils.preprocess import DescriptionRole
 from Orange.widgets.utils.concurrent import TaskState
+from Orange.widgets.utils.sql import check_sql_input
 
 from lmfit.model import ModelResult
 from orangecontrib.spectroscopy.preprocess.utils import replacex
@@ -17,6 +19,7 @@ from orangecontrib.spectroscopy.widgets.owpreprocess import (
     SpectralPreprocess,
 )
 from orangecontrib.spectroscopy.widgets.owspectra import SELECTONE
+from orangewidget.utils.signals import Input
 
 from orangecontrib.snom.widgets.snompy_compute import (
     pool_fit2,
@@ -58,7 +61,7 @@ from orangecontrib.snom.widgets.snompy_util import (
     load_list,
     fit_results_table,
 )
-from orangecontrib.snom.temp import FitPreprocess
+from orangecontrib.snom.temp import FitPreprocess, ComplexTable
 
 
 class StaticPermittivityEditor(ConstantModelEditor):
@@ -171,15 +174,20 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
         m_def = master.save(master.preprocessormodel)['preprocessors']
         if master.data is not None:
             # Clear markings to indicate preview is running
-            refresh_integral_markings([], master.markings_list, master.curveplot)
+            refresh_integral_markings(
+                [], master.markings_list, master.curveplot_amplitude
+            )
+            refresh_integral_markings(
+                [], master.markings_list_after, master.curveplot_phase
+            )
             data = master.sample_data(master.data)
             # Pass preview data to widgets here as we don't use on_partial_result()
             for w in self.master.flow_view.widgets():
                 w.set_preview_data(data)
             self.start(self.run_preview, data, m_def, self.pool)
         else:
-            master.curveplot.set_data(None)
-            master.curveplot_after.set_data(None)
+            master.curveplot_amplitude.set_data(None)
+            master.curveplot_phase.set_data(None)
 
     def on_done(self, result):
         orig_data, after_data, model_result = result
@@ -193,9 +201,15 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
 
         self.preview_model_result = model_result
 
-        # TODO handle complex input data here?
-        self.master.curveplot.set_data(self.preview_data)
-        self.master.curveplot_after.set_data(self.preview_data)
+        # Plot complex data as amplitude and phase
+        if isinstance(self.preview_data, ComplexTable):
+            self.master.curveplot_amplitude.set_data(
+                self.preview_data.to_amplitude_table()
+            )
+            self.master.curveplot_phase.set_data(self.preview_data.to_phase_table())
+        else:
+            self.master.curveplot_amplitude.set_data(self.preview_data)
+            self.master.curveplot_phase.set_data(self.preview_data)
 
         self.show_image_info(final_preview)
 
@@ -259,8 +273,16 @@ class OWSnomModel(FitPreprocess):
     PREPROCESSORS = PREPROCESSORS
     BUTTON_ADD_LABEL = "Add term..."
 
+    class Inputs:
+        data = Input("Data", Orange.data.Table, default=False)
+        amplitude = Input("Amplitude", Orange.data.Table, default=False)
+        phase = Input("Phase", Orange.data.Table, default=False)
+
     def __init__(self):
         self.markings_list = []
+        self.data_input = None
+        self.data_amplitude = None
+        self.data_phase = None
         SpectralPreprocess.__init__(self)
         self.curveplot.selection_type = SELECTONE
         self.curveplot.select_at_least_1 = True
@@ -271,6 +293,9 @@ class OWSnomModel(FitPreprocess):
         self.curveplot_after.show()
         # Markings list for _after
         self.markings_list_after = []
+        # Curveplot aliases
+        self.curveplot_amplitude = self.curveplot
+        self.curveplot_phase = self.curveplot_after
 
         # Custom preview running just to plot complex values
         self.preview_runner = ComplexPeakPreviewRunner(self)
@@ -278,6 +303,40 @@ class OWSnomModel(FitPreprocess):
 
         # Model options
         gui.widgetBox(self.controlArea, "Model Options")
+
+    @Inputs.data
+    @check_sql_input
+    def set_data_input(self, data=None):
+        """Set the input data set."""
+        self.data_input = data
+
+    @Inputs.amplitude
+    @check_sql_input
+    def set_data_amplitude(self, data=None):
+        """Set the input data set."""
+        self.data_amplitude = data
+
+    @Inputs.phase
+    @check_sql_input
+    def set_data_phase(self, data=None):
+        """Set the input data set."""
+        self.data_phase = data
+
+    def handleNewSignals(self):
+        if self.data_amplitude and self.data_phase:
+            self.data = ComplexTable.from_amplitude_phase_tables(
+                self.data_amplitude, self.data_phase
+            )
+        elif self.data_input:
+            if isinstance(self.data_input, ComplexTable):
+                self.data = self.data_input
+            elif "channel" in self.data_input.domain:
+                self.data = ComplexTable.from_interleaved_table(self.data_input)
+            else:
+                self.data = self.data_input
+        else:
+            self.data = None
+        super().handleNewSignals()
 
     def redraw_integral(self):
         dis_abs = []
@@ -336,9 +395,9 @@ class OWSnomModel(FitPreprocess):
                     dis_abs.append({"draw": di_abs, "color": color})
                     dis_angle.append({"draw": di_angle, "color": color})
 
-        refresh_integral_markings(dis_abs, self.markings_list, self.curveplot)
+        refresh_integral_markings(dis_abs, self.markings_list, self.curveplot_amplitude)
         refresh_integral_markings(
-            dis_angle, self.markings_list_after, self.curveplot_after
+            dis_angle, self.markings_list_after, self.curveplot_phase
         )
 
     def create_outputs(self):
