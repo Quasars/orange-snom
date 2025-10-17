@@ -200,10 +200,8 @@ def table_with_no_attribute(data):
     """Create a domain with only the attribute in domain.attributes and ensure
     that the same attribute is removed from metas and class_vars if it was present
     there."""
-    class_vars = [a for a in data.domain.class_vars]
-    metas = [a for a in data.domain.metas]
 
-    newdomain = Domain([], class_vars, metas)
+    newdomain = Domain([], data.domain.class_vars, data.domain.metas)
 
     data = data.transform(newdomain)
     return data
