@@ -191,11 +191,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
 
         self.feature_value_model = DomainModel(
             order=(
-                DomainModel.ATTRIBUTES,
-                DomainModel.Separator,
-                DomainModel.CLASSES,
-                DomainModel.Separator,
-                DomainModel.METAS,
+                DomainModel.ATTRIBUTES
             ),
             valid_types=ContinuousVariable,
         )
