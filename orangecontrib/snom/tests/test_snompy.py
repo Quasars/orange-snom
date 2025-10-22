@@ -11,6 +11,9 @@ from orangecontrib.snom.model.snompy import (
     DrudePermittivityModel,
     compose_layer,
     FiniteInterface,
+    SigmaN,
+    EffPolNFdm,
+    EffPolFdm,
 )
 from orangecontrib.snom.tests.snompy_examples import (
     snompy_t_dependent_spectra_stepwise,
@@ -52,16 +55,19 @@ class TestSnompyModel(unittest.TestCase):
 
     def test_fdm_pmma_single(self):
         """Tests the model code generates the same output as the PMMA example, stepwise"""
+        alpha = EffPolFdm({})
+        alpha_n = EffPolNFdm({})
+        sigma_n = SigmaN({})
         submodels = {
-            "eps_pmma": self.model_list[2:3],
-            "eps_Au": self.model_list[8:9],
-            # "alpha_eff_pmma": self.model_list[:5],
-            # "alpha_eff_pmma_nomod": self.model_list[:5],
-            "sigma_pmma": self.model_list[:5],
-            # "alpha_eff_Au": self.model_list[6:9],
-            # "alpha_eff_Au_nomod": self.model_list[6:9],
-            "sigma_Au": self.model_list[6:9],
-            "eta_n": self.model_list,
+            "eps_pmma": (self.model_list[2:3], sigma_n),  # op is ignored
+            "eps_Au": (self.model_list[8:9], sigma_n),  # op is ignored
+            "alpha_eff_pmma": (self.model_list[:5], alpha_n),
+            "alpha_eff_pmma_nomod": (self.model_list[:5], alpha),
+            "sigma_pmma": (self.model_list[:5], sigma_n),
+            "alpha_eff_Au": (self.model_list[6:9], alpha_n),
+            "alpha_eff_Au_nomod": (self.model_list[6:9], alpha),
+            "sigma_Au": (self.model_list[6:9], sigma_n),
+            "eta_n": (self.model_list, sigma_n),  # op(sample) / op(reference)
         }
         for step, snompy in self.snompy_t_dependent_spectra.items():
             if step not in submodels:
@@ -70,7 +76,7 @@ class TestSnompyModel(unittest.TestCase):
                 if len(snompy.shape) == 2:
                     # Only compare row from thickness 35 * 1e-9
                     snompy = snompy[-1]
-                model = compose_model(submodels[step])
+                model = compose_model(*submodels[step])
                 model_result = model.fit(
                     np.ones_like(self.x), params=self.make_params(model), x=self.x
                 )
@@ -89,7 +95,8 @@ class TestSnompyModel(unittest.TestCase):
         snompy = self.snompy_t_dependent_spectra["eta_n"][::4]
         t_pmma = self.snompy_t_dependent_spectra['t_pmma'][::4]
 
-        model = compose_model(self.model_list)
+        op = SigmaN({})
+        model = compose_model(self.model_list, op)
         parameters = self.make_params(model)
         parameters['fif2_c'].set(vary=True)
 
