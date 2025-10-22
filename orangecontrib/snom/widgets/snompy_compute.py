@@ -6,7 +6,7 @@ from orangecontrib.spectroscopy.widgets.peakfit_compute import (
 )
 
 from orangecontrib.snom.model.snompy import compose_model
-from orangecontrib.snom.widgets.snompy_util import load_list, create_model_list
+from orangecontrib.snom.widgets.snompy_util import load_list, create_model_list, load_op
 
 lmfit_model = None
 lmfit_x = None
@@ -17,9 +17,10 @@ def pool_initializer(m_def, x):
     # Therefore we transfer the preprocessors exported list and build the Model here
     global lmfit_model
     global lmfit_x
-    m_def = load_list(m_def)
-    model_list, parameters = create_model_list(m_def)
-    lmfit_model = compose_model(model_list), parameters
+    m_def_loaded = load_list(m_def)
+    op = load_op(m_def)
+    model_list, parameters = create_model_list(m_def_loaded)
+    lmfit_model = compose_model(model_list, op), parameters
     assert lmfit_model[0] is not None
     lmfit_x = x
 
@@ -44,8 +45,9 @@ def pool_fit(v):
 
 
 def pool_fit2(v, m_def, x) -> Parameters:
-    m_def = load_list(m_def)
-    model_list, parameters = create_model_list(m_def)
-    model = compose_model(model_list)
+    m_def_loaded = load_list(m_def)
+    op = load_op(m_def)
+    model_list, parameters = create_model_list(m_def_loaded)
+    model = compose_model(model_list, op)
     model_result = model.fit(v, params=parameters, x=x)
     return model_result.params

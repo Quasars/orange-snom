@@ -86,7 +86,13 @@ class Reference(Placeholder):
     """Define the start of the reference sample"""
 
 
-class SnompyOperation:
+class SnompyOperationBase:
+    subclasses = {}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__()
+        cls.subclasses[cls.__qualname__] = cls
+
     def __init__(self, parameters):
         self.parameters = parameters
 
@@ -114,7 +120,7 @@ class EffPolFdmParams(TypedDict, total=False):
     method: Literal["bulk", "multi", "Q_ave"]
 
 
-class EffPolFdm(SnompyOperation):
+class EffPolFdm(SnompyOperationBase):
     def __init__(self, parameters: EffPolFdmParams):
         super().__init__(parameters)
 
@@ -128,7 +134,7 @@ class EffPolNFdmParams(EffPolFdmParams, total=False):
     n_trapz: int
 
 
-class EffPolNFdm(SnompyOperation):
+class EffPolNFdm(SnompyOperationBase):
     def __init__(self, parameters: EffPolNFdmParams):
         super().__init__(parameters)
 
@@ -157,7 +163,7 @@ def filter_typed_dict(d: dict, td):
     return td(**{k: d[k] for k in filtered_keys})
 
 
-class SigmaN(SnompyOperation):
+class SigmaN(SnompyOperationBase):
     def __init__(self, parameters: SigmaNParams):
         super().__init__(parameters)
 
@@ -197,7 +203,7 @@ def compose_layer(m_iter: Iterable[Model]) -> Generator[Model, Any, None]:
             break
 
 
-def compose_sample(m_iter: Iterable[Model], op: SnompyOperation) -> Model | None:
+def compose_sample(m_iter: Iterable[Model], op: SnompyOperationBase) -> Model | None:
     sample = list(compose_layer(m_iter))
     if len(sample) == 1:  # Permittivity
         return sample[0]
@@ -207,7 +213,7 @@ def compose_sample(m_iter: Iterable[Model], op: SnompyOperation) -> Model | None
         return None
 
 
-def compose_model(m_list: list[Model], op: SnompyOperation) -> Model:
+def compose_model(m_list: list[Model], op: SnompyOperationBase) -> Model:
     """"""
     m_iter = iter(m_list)
     sample = compose_sample(m_iter, op)
