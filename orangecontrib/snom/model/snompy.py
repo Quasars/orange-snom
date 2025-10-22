@@ -86,6 +86,37 @@ class Reference(Placeholder):
     """Define the start of the reference sample"""
 
 
+class SnompyOperation:
+    def __init__(self, parameters: dict[str, Any]):
+        self.parameters = parameters
+
+    def __call__(self, sample: snompy.Sample):
+        """Override in subclasses."""
+        raise NotImplementedError
+
+
+class EffPolFdm(SnompyOperation):
+    def __call__(self, sample: snompy.Sample):
+        return snompy.fdm.eff_pol(
+            sample=sample, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
+        )
+
+
+class EffPolNFdm(SnompyOperation):
+    def __call__(self, sample: snompy.Sample):
+        return snompy.fdm.eff_pol_n(
+            sample=sample, A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
+        )
+
+
+class SigmaN(SnompyOperation):
+    def __call__(self, sample: snompy.Sample):
+        alpha_eff = EffPolNFdm({})(sample)
+        r_coef = sample.refl_coef(theta_in=np.deg2rad(60))
+        c_r = 0.3  # Experimental weighting factor
+        return (1 + c_r * r_coef) ** 2 * alpha_eff
+
+
 def iter_layer(m_iter: Iterable[Model]) -> Generator[Reference | Model, Any, None]:
     """Yield a layer from an interator of models, stopping at Interface"""
     for m in m_iter:
@@ -113,42 +144,25 @@ def compose_layer(m_iter: Iterable[Model]) -> Generator[Model, Any, None]:
             break
 
 
-def compose_sample(m_iter: Iterable[Model]) -> Model | None:
+def compose_sample(m_iter: Iterable[Model], op: SnompyOperation) -> Model | None:
     sample = list(compose_layer(m_iter))
     if len(sample) == 1:  # Permittivity
         return sample[0]
     elif len(sample) >= 2:
-        return MultilayerModel(sample, sigma)
+        return MultilayerModel(sample, op)
     else:
         return None
 
 
-def compose_model(m_list: list[Model]) -> Model:
+def compose_model(m_list: list[Model], op: SnompyOperation) -> Model:
     """"""
     m_iter = iter(m_list)
-    sample = compose_sample(m_iter)
-    reference = compose_sample(m_iter)
+    sample = compose_sample(m_iter, op)
+    reference = compose_sample(m_iter, op)
     if reference is None:
         return sample
     else:
         return sample / reference
-
-
-def eff_pol_n(sample, **kwargs):
-    return snompy.fdm.eff_pol_n(
-        sample=sample, A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
-    )
-
-
-def eff_pol(sample, **kwargs):
-    return snompy.fdm.eff_pol(sample=sample, r_tip=30e-9, L_tip=350e-9, method="Q_ave")
-
-
-def sigma(sample, **kwargs):
-    alpha_eff = eff_pol_n(sample)
-    r_coef = sample.refl_coef(theta_in=np.deg2rad(60))
-    c_r = 0.3  # Experimental weighting factor
-    return (1 + c_r * r_coef) ** 2 * alpha_eff
 
 
 class MultilayerModel(Model):
