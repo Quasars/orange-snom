@@ -14,6 +14,9 @@ from orangecontrib.snom.model.snompy import (
     SigmaN,
     EffPolNFdm,
     EffPolFdm,
+    EffPolFdmParams,
+    EffPolNFdmParams,
+    SigmaNParams,
 )
 from orangecontrib.snom.tests.snompy_examples import (
     snompy_t_dependent_spectra_stepwise,
@@ -35,6 +38,13 @@ class TestSnompyModel(unittest.TestCase):
             DrudePermittivityModel(name="Au", prefix="dp9_"),
         ]
         self.x = np.linspace(1680, 1800, 128) * 1e2  # nuvac
+        self.eff_pol_params = EffPolFdmParams(r_tip=30e-9, L_tip=350e-9, method="Q_ave")
+        self.eff_pol_n_params = EffPolNFdmParams(
+            A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
+        )
+        self.sigma_n_params = SigmaNParams(
+            **self.eff_pol_n_params, theta_in=np.deg2rad(60), c_r=0.3
+        )
 
     @staticmethod
     def make_params(model):
@@ -55,9 +65,9 @@ class TestSnompyModel(unittest.TestCase):
 
     def test_fdm_pmma_single(self):
         """Tests the model code generates the same output as the PMMA example, stepwise"""
-        alpha = EffPolFdm({})
-        alpha_n = EffPolNFdm({})
-        sigma_n = SigmaN({})
+        alpha = EffPolFdm(self.eff_pol_params)
+        alpha_n = EffPolNFdm(self.eff_pol_n_params)
+        sigma_n = SigmaN(self.sigma_n_params)
         submodels = {
             "eps_pmma": (self.model_list[2:3], sigma_n),  # op is ignored
             "eps_Au": (self.model_list[8:9], sigma_n),  # op is ignored
@@ -95,7 +105,7 @@ class TestSnompyModel(unittest.TestCase):
         snompy = self.snompy_t_dependent_spectra["eta_n"][::4]
         t_pmma = self.snompy_t_dependent_spectra['t_pmma'][::4]
 
-        op = SigmaN({})
+        op = SigmaN(self.sigma_n_params)
         model = compose_model(self.model_list, op)
         parameters = self.make_params(model)
         parameters['fif2_c'].set(vary=True)
