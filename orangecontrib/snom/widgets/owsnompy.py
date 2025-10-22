@@ -55,11 +55,15 @@ from orangecontrib.snom.model.snompy import (
     FiniteInterface,
     Reference,
     Interface,
+    EffPolNFdmParams,
+    SigmaNParams,
+    SigmaN,
 )
 from orangecontrib.snom.widgets.snompy_util import (
     create_model_list,
     load_list,
     fit_results_table,
+    load_op,
 )
 from orangecontrib.snom.temp import FitPreprocess, ComplexTable
 
@@ -171,7 +175,7 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
         self.show_info_anyway = show_info_anyway
         self.preview_data = None
         self.after_data = None
-        m_def = master.save(master.preprocessormodel)['preprocessors']
+        m_def = master.save(master.preprocessormodel)
         if master.data is not None:
             # Clear markings to indicate preview is running
             refresh_integral_markings(
@@ -236,9 +240,9 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
 
         model_result = {}
         x = getx(data)
-        if data is not None and m_def is not None and len(m_def) != 0:
+        if data is not None and m_def is not None and len(m_def['preprocessors']) != 0:
             model_list, _ = create_model_list(load_list(m_def))
-            model = compose_model(model_list)
+            model = compose_model(model_list, load_op(m_def))
             for row in data:
                 progress_interrupt(0)
                 res = pool.schedule(pool_fit2, (row.x, m_def, x))
@@ -400,8 +404,26 @@ class OWSnomModel(FitPreprocess):
             dis_angle, self.markings_list_after, self.curveplot_phase
         )
 
+    def snompy_op(self):
+        eff_pol_n_params = EffPolNFdmParams(
+            A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
+        )
+        sigma_n_params = SigmaNParams(
+            **eff_pol_n_params, theta_in=np.deg2rad(60), c_r=0.3
+        )
+        return SigmaN(sigma_n_params)
+
+    def save(self, model):
+        d = super().save(model)
+
+        op = self.snompy_op()
+        snompy_params = op.parameters
+        snompy_params["op"] = type(op).__qualname__
+        d["snompy"] = snompy_params
+        return d
+
     def create_outputs(self):
-        m_def = self.save(self.preprocessormodel)['preprocessors']
+        m_def = self.save(self.preprocessormodel)
         self.start(self.run_task, self.data, m_def)
 
     @staticmethod
@@ -420,7 +442,7 @@ class OWSnomModel(FitPreprocess):
             progress_interrupt(0)
 
         data_fits = data_anno = data_resid = None
-        if data is not None and m_def is not None and len(m_def) != 0:
+        if data is not None and m_def is not None and len(m_def["preprocessors"]) != 0:
             orig_data = data
             output = []
             x = getx(data)
@@ -445,6 +467,7 @@ class OWSnomModel(FitPreprocess):
 
                 fitsr = res.get()
 
+            progress_interrupt(99)
             progress_interrupt(99)
 
             for mrd, bpar, fitted, resid in fitsr:
@@ -535,7 +558,7 @@ if __name__ == "__main__":  # pragma: no cover
     new_x = getx(data) * 100
     data = replacex(data, new_x)
     wp = WidgetPreview(OWSnomModel)
-    wp.run(data, no_exec=True, no_exit=True)
+    wp.run(set_data_input=data, no_exec=True, no_exit=True)
     # Demo PMMA model
     demo_pmma_model(wp.widget)
     wp.widget.show_preview(show_info_anyway=True)

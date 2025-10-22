@@ -3,6 +3,7 @@ from typing import Any
 from Orange.data import ContinuousVariable, Domain
 from lmfit import Model, Parameters
 from orangecontrib.spectroscopy.widgets.owpeakfit import unique_prefix
+from orangecontrib.snom.model.snompy import SnompyOperationBase
 
 
 def load_list(preprocessors) -> list[dict[str, Any]]:
@@ -12,11 +13,18 @@ def load_list(preprocessors) -> list[dict[str, Any]]:
     qname2ppdef = {ppdef.qualname: ppdef for ppdef in PREPROCESSORS}
 
     pp_list = []
-    for qualname, params in preprocessors:
+    for qualname, params in preprocessors["preprocessors"]:
         pp_def = qname2ppdef[qualname]
         pp_list.append((pp_def, params))
 
     return pp_list
+
+
+def load_op(preprocessors: dict[str, dict]) -> list[dict[str, Any]]:
+    """Load a saved snompy operation from a dict."""
+    params = preprocessors["snompy"].copy()
+    op = SnompyOperationBase.subclasses[params.pop("op")]
+    return op(params)
 
 
 def create_model(item, rownum) -> Model:
