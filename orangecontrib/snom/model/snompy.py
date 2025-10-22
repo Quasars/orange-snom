@@ -1,6 +1,6 @@
 import warnings
 from functools import reduce
-from typing import Any
+from typing import Any, TypedDict, Literal, Required, get_type_hints
 from collections.abc import Iterable, Generator
 
 import numpy as np
@@ -87,7 +87,7 @@ class Reference(Placeholder):
 
 
 class SnompyOperation:
-    def __init__(self, parameters: dict[str, Any]):
+    def __init__(self, parameters):
         self.parameters = parameters
 
     def __call__(self, sample: snompy.Sample):
@@ -95,25 +95,78 @@ class SnompyOperation:
         raise NotImplementedError
 
 
+class EffPolPdmParams(TypedDict, total=False):
+    z_tip: float
+    r_tip: float
+    eps_tip: complex
+    alpha_tip: float
+
+
+class EffPolFdmParams(TypedDict, total=False):
+    z_tip: float
+    r_tip: float
+    L_tip: float
+    g_factor: complex
+    d_Q0: float  # noqa N815
+    d_Q1: float  # noqa N815
+    d_Qa: float  # noqa N815
+    n_lag: int
+    method: Literal["bulk", "multi", "Q_ave"]
+
+
 class EffPolFdm(SnompyOperation):
+    def __init__(self, parameters: EffPolFdmParams):
+        super().__init__(parameters)
+
     def __call__(self, sample: snompy.Sample):
-        return snompy.fdm.eff_pol(
-            sample=sample, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
-        )
+        return snompy.fdm.eff_pol(sample=sample, **self.parameters)
+
+
+class EffPolNFdmParams(EffPolFdmParams, total=False):
+    A_tip: Required[float]  # noqa N815
+    n: Required[int]
+    n_trapz: int
 
 
 class EffPolNFdm(SnompyOperation):
+    def __init__(self, parameters: EffPolNFdmParams):
+        super().__init__(parameters)
+
     def __call__(self, sample: snompy.Sample):
-        return snompy.fdm.eff_pol_n(
-            sample=sample, A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
-        )
+        kwargs = self.parameters.copy()
+        A_tip = kwargs.pop('A_tip')  # noqa N806
+        n = kwargs.pop('n')
+        return snompy.fdm.eff_pol_n(sample=sample, A_tip=A_tip, n=n, **kwargs)
+
+
+class ReflCoefParams(TypedDict, total=False):
+    q: float
+    theta_in: float
+    nu_vac: float
+    polarization: Literal["p", "s"]
+
+
+class SigmaNParams(EffPolNFdmParams, ReflCoefParams, total=False):
+    c_r: float
+
+
+def filter_typed_dict(d: dict, td):
+    dict_keys = d.keys()
+    allowed_keys = get_type_hints(td).keys()
+    filtered_keys = [k for k in allowed_keys if k in dict_keys]
+    return td(**{k: d[k] for k in filtered_keys})
 
 
 class SigmaN(SnompyOperation):
+    def __init__(self, parameters: SigmaNParams):
+        super().__init__(parameters)
+
     def __call__(self, sample: snompy.Sample):
-        alpha_eff = EffPolNFdm({})(sample)
-        r_coef = sample.refl_coef(theta_in=np.deg2rad(60))
-        c_r = 0.3  # Experimental weighting factor
+        alpha_eff = EffPolNFdm(filter_typed_dict(self.parameters, EffPolNFdmParams))(
+            sample
+        )
+        r_coef = sample.refl_coef(**filter_typed_dict(self.parameters, ReflCoefParams))
+        c_r = self.parameters['c_r']  # Experimental weighting factor
         return (1 + c_r * r_coef) ** 2 * alpha_eff
 
 
