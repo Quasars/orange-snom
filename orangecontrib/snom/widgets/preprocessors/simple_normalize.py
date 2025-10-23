@@ -9,18 +9,20 @@ from pySNOM.images import SimpleNormalize, DataTypes
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
 from orangecontrib.snom.preprocess.utils import (
     PreprocessImageOpts2DOnlyWhole,
+    MaskOptions,
+    transform_mask,
 )
 
 
 class SimpleNorm(PreprocessImageOpts2DOnlyWhole):
-    def __init__(self, method, value, use_mask=False):
+    def __init__(self, method, value, mask_method=False):
         self.method = method
         self.value = value
-        self.use_mask = use_mask
+        self.mask_method = mask_method
 
     def transform_image(self, image, data, mask=None):
         datatype = data.attributes.get("measurement.signaltype", "Phase")
-        mask = mask if self.use_mask else None
+        mask = transform_mask(mask=mask, option=MaskOptions[self.mask_method])
         return SimpleNormalize(
             method=self.method, value=self.value, datatype=DataTypes[datatype]
         ).transform(image, mask=mask)
@@ -35,7 +37,7 @@ class SimpleNormEditor(BaseEditorOrange):
 
         self.method = "manual"
         self.value = 1.0
-        self.use_mask = False
+        self.mask_method = 'IGNORE'
 
         form = QFormLayout()
         self.valueedit = lineEditFloatRange(
@@ -44,13 +46,15 @@ class SimpleNormEditor(BaseEditorOrange):
         self.cb_method = comboBox(self, self, "method", callback=self.setmethod)
         self.cb_method.addItems(['median', 'mean', 'manual'])
         self.cb_method.setCurrentText('manual')
-        self.use_mask_chb = checkBox(
-            self, self, "use_mask", "Enable", callback=self.edited.emit
+
+        self.maskmethod_cb = comboBox(
+            self, self, "mask_method", callback=self.setmethod
         )
+        self.maskmethod_cb.addItems([e.name for e in MaskOptions])
 
         form.addRow("Method", self.cb_method)
         form.addRow("Value", self.valueedit)
-        form.addRow("Masking", self.use_mask_chb)
+        form.addRow("Mask", self.maskmethod_cb)
         self.controlArea.setLayout(form)
 
     def setmethod(self):
@@ -60,6 +64,7 @@ class SimpleNormEditor(BaseEditorOrange):
             self.valueedit.setEnabled(True)
 
         self.method = self.cb_method.currentText()
+        self.mask_method = self.maskmethod_cb.currentText()
         self.edited.emit()
 
     def activateOptions(self):
@@ -68,15 +73,15 @@ class SimpleNormEditor(BaseEditorOrange):
     def setParameters(self, params):
         self.method = params.get("method", "manual")
         self.value = params.get("value", 1)
-        self.use_mask = params.get("use_mask", False)
+        self.mask_method = params.get("mask_method", "IGNORE")
 
     @classmethod
     def createinstance(cls, params):
         params = dict(params)
         method = str(params.get("method", "manual"))
         value = float(params.get("value", 1))
-        use_mask = bool(params.get("use_mask", False))
-        return SimpleNorm(method=method, value=value, use_mask=use_mask)
+        mask_method = params.get("mask_method", "IGNORE")
+        return SimpleNorm(method=method, value=value, mask_method=mask_method)
 
     def set_preview_data(self, data):
         if data:
