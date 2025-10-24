@@ -86,6 +86,13 @@ class Reference(Placeholder):
     """Define the start of the reference sample"""
 
 
+def filter_typed_dict(d: dict, td):
+    dict_keys = d.keys()
+    allowed_keys = get_type_hints(td).keys()
+    filtered_keys = [k for k in allowed_keys if k in dict_keys]
+    return td(**{k: d[k] for k in filtered_keys})
+
+
 class SnompyOperationBase:
     subclasses = {}
 
@@ -99,6 +106,12 @@ class SnompyOperationBase:
     def __call__(self, sample: snompy.Sample):
         """Override in subclasses."""
         raise NotImplementedError
+
+    @classmethod
+    def from_subclass_params(cls, parameters):
+        return cls(
+            filter_typed_dict(parameters, get_type_hints(cls.__init__)['parameters'])
+        )
 
 
 class EffPolPdmParams(TypedDict, total=False):
@@ -156,21 +169,12 @@ class SigmaNParams(EffPolNFdmParams, ReflCoefParams, total=False):
     c_r: float
 
 
-def filter_typed_dict(d: dict, td):
-    dict_keys = d.keys()
-    allowed_keys = get_type_hints(td).keys()
-    filtered_keys = [k for k in allowed_keys if k in dict_keys]
-    return td(**{k: d[k] for k in filtered_keys})
-
-
 class SigmaN(SnompyOperationBase):
     def __init__(self, parameters: SigmaNParams):
         super().__init__(parameters)
 
     def __call__(self, sample: snompy.Sample):
-        alpha_eff = EffPolNFdm(filter_typed_dict(self.parameters, EffPolNFdmParams))(
-            sample
-        )
+        alpha_eff = EffPolNFdm.from_subclass_params(self.parameters)(sample)
         r_coef = sample.refl_coef(**filter_typed_dict(self.parameters, ReflCoefParams))
         c_r = self.parameters['c_r']  # Experimental weighting factor
         return (1 + c_r * r_coef) ** 2 * alpha_eff
