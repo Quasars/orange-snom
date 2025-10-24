@@ -2,7 +2,7 @@ from AnyQt.QtWidgets import QFormLayout
 
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 from orangecontrib.spectroscopy.widgets.gui import lineEditFloatRange
-from orangewidget.gui import comboBox, checkBox
+from orangewidget.gui import comboBox
 
 from pySNOM.images import SimpleNormalize, DataTypes
 

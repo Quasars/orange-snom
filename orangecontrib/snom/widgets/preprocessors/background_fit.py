@@ -4,7 +4,6 @@ from orangewidget.gui import comboBox
 
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import BaseEditorOrange
 from orangecontrib.spectroscopy.widgets.gui import lineEditIntRange
-from orangewidget.gui import checkBox
 
 from pySNOM.images import MaskedBackgroundPolyFit, DataTypes
 
@@ -58,7 +57,7 @@ class BackGroundFitEditor(BaseEditorOrange):
 
     def activateOptions(self):
         pass  # actions when user starts changing options
-    
+
     def setmethod(self):
         self.mask_method = self.maskmethod_cb.currentText()
         self.edited.emit()
