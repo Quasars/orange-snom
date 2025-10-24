@@ -57,7 +57,7 @@ from orangecontrib.snom.model.snompy import (
     Interface,
     EffPolNFdmParams,
     SigmaNParams,
-    SigmaN,
+    SnompyOperationBase,
 )
 from orangecontrib.snom.widgets.snompy_util import (
     create_model_list,
@@ -287,6 +287,12 @@ class OWSnomModel(FitPreprocess):
         self.data_input = None
         self.data_amplitude = None
         self.data_phase = None
+
+        self.snompy_op_selection = "SigmaN"
+        # self.snompy_params = {}
+        self.snompy_params = self.snompy_params_temp()
+
+        # SpectralPreprocess
         SpectralPreprocess.__init__(self)
         self.curveplot.selection_type = SELECTONE
         self.curveplot.select_at_least_1 = True
@@ -306,7 +312,15 @@ class OWSnomModel(FitPreprocess):
         self.preview_runner.preview_updated.connect(self.redraw_integral)
 
         # Model options
-        gui.widgetBox(self.controlArea, "Model Options")
+        model_box = gui.widgetBox(self.controlArea, "Model Options")
+        gui.comboBox(
+            model_box,
+            self,
+            "snompy_op_selection",
+            callback=self.update_snompy_op,
+            items=list(SnompyOperationBase.subclasses.keys()),
+            sendSelectedValue=True,
+        )
 
     @Inputs.data
     @check_sql_input
@@ -341,6 +355,13 @@ class OWSnomModel(FitPreprocess):
         else:
             self.data = None
         super().handleNewSignals()
+
+    def update_snompy_op(self):
+        print(self.snompy_op_selection)
+        print(self.snompy_params)
+        # TBD: set self.snompy_op to dict or instance?
+        # self.snompy_op = SnompyOperationBase.subclasses[self.snompy_op_selection](self.snompy_params) # noqa F401
+        self.on_modelchanged()
 
     def redraw_integral(self):
         dis_abs = []
@@ -404,21 +425,20 @@ class OWSnomModel(FitPreprocess):
             dis_angle, self.markings_list_after, self.curveplot_phase
         )
 
-    def snompy_op(self):
+    def snompy_params_temp(self):
         eff_pol_n_params = EffPolNFdmParams(
             A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
         )
         sigma_n_params = SigmaNParams(
             **eff_pol_n_params, theta_in=np.deg2rad(60), c_r=0.3
         )
-        return SigmaN(sigma_n_params)
+        return sigma_n_params
 
     def save(self, model):
         d = super().save(model)
 
-        op = self.snompy_op()
-        snompy_params = op.parameters
-        snompy_params["op"] = type(op).__qualname__
+        snompy_params = self.snompy_params.copy()
+        snompy_params["op"] = self.snompy_op_selection
         d["snompy"] = snompy_params
         return d
 

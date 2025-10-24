@@ -24,7 +24,7 @@ def load_op(preprocessors: dict[str, dict]) -> list[dict[str, Any]]:
     """Load a saved snompy operation from a dict."""
     params = preprocessors["snompy"].copy()
     op = SnompyOperationBase.subclasses[params.pop("op")]
-    return op(params)
+    return op.from_subclass_params(params)
 
 
 def create_model(item, rownum) -> Model:
