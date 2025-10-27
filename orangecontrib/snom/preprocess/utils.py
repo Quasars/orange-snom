@@ -57,20 +57,38 @@ def _image_from_table(data, image_opts):
     )
     return hypercube[:, :, 0], indices
 
-
+# Introdueced run_all optional argument to run for all attributes 
+# in the dataset (same for PreprocessImageOpts2DOnlyWholeReference)
 class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
-    def __call__(self, data, image_opts):
-        data = _prepare_table_for_image(data, image_opts)
-        try:
-            image, indices = _image_from_table(data, image_opts)
-            transformed = self.transform_image(image, data)
-            col = transformed[indices].reshape(-1)
-        except InvalidAxisException:
-            col = np.full(len(data), np.nan)
-        if len(data):
-            with data.unlocked(data.X):
-                data.X[:, 0] = col
-        return data
+    def __call__(self, data, image_opts, run_all=False):
+        if run_all:
+            attrs_to_run = [v.name for v in data.domain.attributes]
+            newdata = data.copy()
+        else:
+            # This is only for the preview for a single feature image
+            # So it only processes one image
+            attrs_to_run = [image_opts["attr_value"]]
+            newdata = _prepare_table_for_image(data, image_opts)
+
+        M = np.full(np.shape(newdata.X), np.nan, dtype="float")
+        for i, attr in enumerate(attrs_to_run):
+            image_opts["attr_value"] = attr
+            try:
+                temp = _prepare_table_for_image(newdata, image_opts)
+            except KeyError:
+                raise WrongReferenceException("Data and reference do not contain the same features")
+            
+            try:
+                image, indices = _image_from_table(temp, image_opts)
+                transformed = self.transform_image(image, newdata)
+                M[:,i] = transformed[indices].reshape(-1)
+            except InvalidAxisException:
+                M[:,i] = np.full(len(newdata), np.nan)
+        
+        with newdata.unlocked(newdata.X):
+            newdata.X = M
+
+        return newdata
 
     def transform_image(self, image, data):
         """
@@ -81,23 +99,53 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
 
 
 class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
-    def __call__(self, data, image_opts):
-        data = _prepare_table_for_image(data, image_opts)
-        reference = _prepare_table_for_image(self.reference, image_opts)
-        try:
-            image, indices = _image_from_table(data, image_opts)
-            ref_image, _ = _image_from_table(reference, image_opts)
-            if image.shape != ref_image.shape:
-                raise WrongReferenceException("Reference data should have length 1")
-            transformed = self.transform_image(image, ref_image, data)
-            col = transformed[indices].reshape(-1)
-        except InvalidAxisException:
-            col = np.full(len(data), np.nan)
-        if len(data):
-            with data.unlocked(data.X):
-                data.X[:, 0] = col
-        return data
 
+    def __call__(self, data, image_opts, run_all=False):
+        if run_all:
+            attrs_to_run = [v.name for v in data.domain.attributes]
+            newdata = data.copy()
+        else:
+            # This is only for the preview for a single feature image
+            # So it only processes one image
+            attrs_to_run = [image_opts["attr_value"]]
+            newdata = _prepare_table_for_image(data, image_opts)
+
+        ref_attrs = [v.name for v in self.reference.domain.attributes]
+        reflen = len(ref_attrs)
+        image_opts_ref = image_opts.copy()
+
+        if attrs_to_run != ref_attrs or reflen != 1:
+            WrongReferenceException("Reference has to contain the same features or be single-featured")
+        
+        M = np.full(np.shape(newdata.X), np.nan, dtype="float")
+        for i, attr in enumerate(attrs_to_run):
+            image_opts["attr_value"] = attr
+            # If reference is longer, than it has the same features as data
+            # If it is single-featured, than always use the single image for correction
+            if reflen!=1:
+                image_opts_ref["attr_value"] = ref_attrs[i]
+            else:
+                image_opts_ref["attr_value"] = ref_attrs[0]
+
+            try:
+                temp = _prepare_table_for_image(newdata, image_opts)
+                reference = _prepare_table_for_image(self.reference, image_opts_ref)
+            except KeyError:
+                raise WrongReferenceException("Data and reference do not contain the same features")
+            
+            try:
+                image, indices = _image_from_table(temp, image_opts)
+                ref_image, _ = _image_from_table(reference, image_opts_ref)
+                transformed = self.transform_image(image,ref_image, newdata)
+                M[:,i] = transformed[indices].reshape(-1)
+            except InvalidAxisException:
+                M[:,i] = np.full(len(newdata), np.nan)
+        
+        with newdata.unlocked(newdata.X):
+            newdata.X = M
+
+        return newdata
+    
     def transform_image(self, image, ref_image, data):
         """
         image: a numpy 2D array where image[y,x] is the value in image row y and column x
@@ -148,6 +196,15 @@ def domain_with_single_attribute_in_x(attribute, domain):
     metas = [a for a in domain.metas if a.name != attribute.name]
     return Domain([attribute], class_vars, metas)
 
+def table_with_no_attribute(data):
+    """Create a domain with only the attribute in domain.attributes and ensure
+    that the same attribute is removed from metas and class_vars if it was present
+    there."""
+
+    newdomain = Domain([], data.domain.class_vars, data.domain.metas)
+
+    data = data.transform(newdomain)
+    return data
 
 class CommonDomainImage2D(CommonDomain):
     def __init__(self, domain: Domain, image_opts: dict):

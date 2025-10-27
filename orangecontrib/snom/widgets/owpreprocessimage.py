@@ -68,10 +68,10 @@ class SpectralImagePreprocess(GeneralPreprocess, ImagePreviews, openclass=True):
         super().onDeleteWidget()
         ImagePreviews.shutdown(self)
 
-
-def execute_with_image_opts(pp, data, image_opts):
+# NOTE: new run_all argument: True - go through all attributes, False - just the one defined in image_opts from gui
+def execute_with_image_opts(pp, data, image_opts, run_all=False):
     if isinstance(pp, PreprocessImageOpts):
-        return pp(data, image_opts)
+        return pp(data, image_opts, run_all)
     return pp(data)
 
 
@@ -125,6 +125,7 @@ class ImagePreviewRunner(PreviewRunner):
             pp = create_preprocessor(item, reference)
             data = execute_with_image_opts(pp, data, image_opts)
             progress_interrupt(0)
+            # NOTE: We dont always want to process the reference, it could be an option in preprocessimage maybe
             if process_reference and reference is not None and i != n - 1:
                 reference = execute_with_image_opts(pp, reference, image_opts)
         progress_interrupt(0)
@@ -190,11 +191,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
 
         self.feature_value_model = DomainModel(
             order=(
-                DomainModel.ATTRIBUTES,
-                DomainModel.Separator,
-                DomainModel.CLASSES,
-                DomainModel.Separator,
-                DomainModel.METAS,
+                DomainModel.ATTRIBUTES
             ),
             valid_types=ContinuousVariable,
         )
@@ -352,10 +349,13 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
             pp = create_preprocessor(item, reference)
             plist.append(pp)
             if data is not None:
-                data = execute_with_image_opts(pp, data, image_opts)
+                # run_all=True goes across all the attributes
+                data = execute_with_image_opts(pp, data, image_opts, run_all=True)
             progress_interrupt((i / n + 0.5 / n) * 100)
+            # NOTE: We dont always want to process the reference, it could be an option in preprocessimage maybe
             if process_reference and reference is not None and i != n - 1:
-                reference = execute_with_image_opts(pp, reference, image_opts)
+                reference = execute_with_image_opts(pp, reference, image_opts, run_all=True)
+
         # if there are no preprocessors, return None instead of an empty list
         preprocessor = preprocess.preprocess.PreprocessorList(plist) if plist else None
         return data, preprocessor
