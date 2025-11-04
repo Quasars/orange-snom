@@ -2,11 +2,12 @@ import multiprocessing
 import concurrent.futures
 import sys
 import time
+from AnyQt.QtWidgets import QFormLayout, QGridLayout
 
 import Orange
 import numpy as np
 from Orange.data import Table, Domain
-from Orange.widgets import gui
+from Orange.widgets import gui, settings
 from Orange.widgets.data.owpreprocess import PreprocessAction, Description, icon_path
 from Orange.widgets.data.utils.preprocess import DescriptionRole
 from Orange.widgets.utils.concurrent import TaskState
@@ -46,6 +47,7 @@ from orangecontrib.spectroscopy.widgets.peak_editors import (
     ModelEditor,
     ConstantModelEditor,
 )
+from orangecontrib.spectroscopy.widgets.gui import lineEditFloatRange
 
 
 from orangecontrib.snom.model.snompy import (
@@ -58,6 +60,7 @@ from orangecontrib.snom.model.snompy import (
     EffPolNFdmParams,
     SigmaNParams,
     SnompyOperationBase,
+    EffPolFdmParams,
 )
 from orangecontrib.snom.widgets.snompy_util import (
     create_model_list,
@@ -282,6 +285,14 @@ class OWSnomModel(FitPreprocess):
         amplitude = Input("Amplitude", Orange.data.Table, default=False)
         phase = Input("Phase", Orange.data.Table, default=False)
 
+    A_tip = settings.Setting(20e-9)
+    r_tip = settings.Setting(30e-9)
+    L_tip = settings.Setting(350e-9)
+    n_fdm = settings.Setting(3)
+    theta_in = settings.Setting(60.0)  # degrees
+    c_r = settings.Setting(0.3)
+    fdm_method = settings.Setting("Q_ave")
+
     def __init__(self):
         self.markings_list = []
         self.data_input = None
@@ -322,6 +333,48 @@ class OWSnomModel(FitPreprocess):
             sendSelectedValue=True,
         )
 
+        params_box = gui.widgetBox(self.controlArea,"FDM Parameters",orientation=QGridLayout())
+
+        radius_edit = gui.lineEdit(self, self, "r_tip", valueType=float, callback=self.update_snompy_op)
+        amp_edit = gui.lineEdit(self, self, "A_tip", valueType=float, callback=self.update_snompy_op)
+        l_edit = gui.lineEdit(self, self, "L_tip", valueType=float, callback=self.update_snompy_op)
+        n_edit = gui.lineEdit(self, self, "n_fdm", valueType=float, callback=self.update_snompy_op)
+        theta_edit = gui.lineEdit(self, self, "theta_in", valueType=float, callback=self.update_snompy_op)
+        c_edit = lineEditFloatRange(self, self, "c_r", 0.0, 1.0, callback=self.update_snompy_op)
+
+        m_combo = gui.comboBox(
+            self,
+            self,
+            "fdm_method",
+            callback=self.update_snompy_op,
+            items=["bulk", "multi", "Q_ave"],
+            sendSelectedValue=True,
+        )
+
+        lbr = gui.widgetLabel(self, "Tip radius (m):")
+        lba = gui.widgetLabel(self, "Tip amplitude (m):")
+        lbl = gui.widgetLabel(self, "L<sub>tip</sub> Spheroid length (m):")
+        lbn = gui.widgetLabel(self, "Demodulation order:")
+        lbm = gui.widgetLabel(self, "Method:")
+        lbt = gui.widgetLabel(self, "Angle of incidence (deg):")
+        lbc = gui.widgetLabel(self, "C<sub>r</sub> (0-1):")
+
+        params_box.layout().addWidget(radius_edit,0,1)
+        params_box.layout().addWidget(lbr,0,0)
+        params_box.layout().addWidget(amp_edit,0,3)
+        params_box.layout().addWidget(lba,0,2)
+        params_box.layout().addWidget(lbl,1,0)
+        params_box.layout().addWidget(l_edit,1,1)
+        params_box.layout().addWidget(lbn,1,2)
+        params_box.layout().addWidget(n_edit,1,3)
+        params_box.layout().addWidget(lbt,2,0)
+        params_box.layout().addWidget(theta_edit,2,1)
+        params_box.layout().addWidget(lbc,2,2)
+        params_box.layout().addWidget(c_edit,2,3)
+        params_box.layout().addWidget(lbm,3,0)
+        params_box.layout().addWidget(m_combo,3,1)
+        # A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
+
     @Inputs.data
     @check_sql_input
     def set_data_input(self, data=None):
@@ -357,6 +410,8 @@ class OWSnomModel(FitPreprocess):
         super().handleNewSignals()
 
     def update_snompy_op(self):
+        # To update the new parameters
+        self.snompy_params = self.snompy_params_temp()
         print(self.snompy_op_selection)
         print(self.snompy_params)
         # TBD: set self.snompy_op to dict or instance?
@@ -427,10 +482,10 @@ class OWSnomModel(FitPreprocess):
 
     def snompy_params_temp(self):
         eff_pol_n_params = EffPolNFdmParams(
-            A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
+            A_tip=self.A_tip, n=self.n_fdm, r_tip=self.r_tip, L_tip=self.L_tip, method=self.fdm_method
         )
         sigma_n_params = SigmaNParams(
-            **eff_pol_n_params, theta_in=np.deg2rad(60), c_r=0.3
+            **eff_pol_n_params, theta_in=np.deg2rad(self.theta_in), c_r=self.c_r
         )
         return sigma_n_params
 
