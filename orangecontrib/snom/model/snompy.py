@@ -194,10 +194,12 @@ def compose_layer(m_iter: Iterable[Model]) -> Generator[Model, Any, None]:
     while True:
         layer = list(iter_layer(m_iter))
         interface = None
-        if len(layer) == 0:
+        if len(layer) == 0:  # Empty layer
             break
         if isinstance(layer[-1], (Interface, Reference)):
             interface = layer.pop(-1)
+        if len(layer) == 0:  # Interface-only layer
+            break
         yield reduce(lambda x, y: x + y, layer)
         if isinstance(interface, Interface):
             if isinstance(interface, FiniteInterface):
@@ -224,6 +226,8 @@ def compose_model(m_list: list[Model], op: SnompyOperationBase) -> Model:
     reference = compose_sample(m_iter, op)
     if reference is None:
         return sample
+    elif sample is None:
+        return None
     else:
         return sample / reference
 

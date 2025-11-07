@@ -17,6 +17,7 @@ from orangecontrib.snom.model.snompy import (
     EffPolFdmParams,
     EffPolNFdmParams,
     SigmaNParams,
+    compose_sample,
 )
 from orangecontrib.snom.tests.snompy_examples import (
     snompy_t_dependent_spectra_stepwise,
@@ -156,6 +157,18 @@ class TestSnompyModel(unittest.TestCase):
         reference = list(compose_layer(m_iter))
         assert sample == [6, i34, 4, 11]  # [0+1+2+3, 4, 5+6]
         assert reference == [45, 54]  # [7+8+9+10+11, 12+13+14+15]
+
+    def test_compose_model_only_interface(self):
+        """Test the sample / reference compose / split from a model list"""
+        model_list = [Interface()]
+        sample = compose_model(iter(model_list), SigmaN(self.sigma_n_params))
+        assert sample is None
+
+    def test_compose_model_only_reference(self):
+        """Test the sample / reference compose / split from a model list"""
+        model_list = [Reference(), 5]
+        sample = compose_sample(iter(model_list), SigmaN(self.sigma_n_params))
+        assert sample is None
 
 
 def plot_complex(array_d, nu_vac, title=""):
