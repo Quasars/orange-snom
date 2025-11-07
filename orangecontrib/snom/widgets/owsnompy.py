@@ -166,6 +166,16 @@ PREPROCESSORS = [
 ]
 
 
+def valid_model(m_def):
+    if m_def is None:
+        return False
+    if len(m_def["preprocessors"]) == 0:
+        return False
+    model_list, _ = create_model_list(load_list(m_def))
+    model = compose_model(model_list, load_op(m_def))
+    return model is not None
+
+
 class ComplexPeakPreviewRunner(PeakPreviewRunner):
     def show_preview(self, show_info_anyway=False):
         """Shows preview and also passes preview data to the widgets
@@ -242,7 +252,7 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
 
         model_result = {}
         x = getx(data)
-        if data is not None and m_def is not None and len(m_def['preprocessors']) != 0:
+        if data is not None and valid_model(m_def):
             model_list, _ = create_model_list(load_list(m_def))
             model = compose_model(model_list, load_op(m_def))
             for row in data:
@@ -539,7 +549,7 @@ class OWSnomModel(FitPreprocess):
             progress_interrupt(0)
 
         data_fits = data_anno = data_resid = None
-        if data is not None and m_def is not None and len(m_def["preprocessors"]) != 0:
+        if data is not None and valid_model(m_def):
             orig_data = data
             output = []
             x = getx(data)
