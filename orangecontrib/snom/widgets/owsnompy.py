@@ -60,7 +60,6 @@ from orangecontrib.snom.model.snompy import (
     EffPolNFdmParams,
     SigmaNParams,
     SnompyOperationBase,
-    EffPolFdmParams,
 )
 from orangecontrib.snom.widgets.snompy_util import (
     create_model_list,
@@ -323,8 +322,8 @@ class OWSnomModel(FitPreprocess):
         self.preview_runner.preview_updated.connect(self.redraw_integral)
 
         # Model options
-        model_box = gui.widgetBox(None, "Model Options")
-        self.controlArea.layout().insertWidget(2,model_box)
+        model_box = gui.hBox(None, "Model Options")
+        self.controlArea.layout().insertWidget(2, model_box)
 
         gui.comboBox(
             model_box,
@@ -335,19 +334,30 @@ class OWSnomModel(FitPreprocess):
             sendSelectedValue=True,
         )
 
-        params_box = gui.widgetBox(None,"FDM Parameters",orientation=QGridLayout())
-        self.controlArea.layout().insertWidget(3,params_box)
+        params_button = gui.button(model_box, self, "Parameters", toggleButton=True)
 
-        common_options = dict(
-            controlWidth=70,
-            callback=self.update_snompy_op,
+        params_box = gui.widgetBox(
+            None, "FDM Parameters", orientation=QGridLayout(), visible=False
         )
-        radius_edit = gui.lineEdit(self, self, "r_tip", valueType=float, **common_options)
+        self.controlArea.layout().insertWidget(3, params_box)
+        params_button.clicked[bool].connect(params_box.setVisible)
+
+        common_options = {
+            'controlWidth': 70,
+            'callback': self.update_snompy_op,
+        }
+        radius_edit = gui.lineEdit(
+            self, self, "r_tip", valueType=float, **common_options
+        )
         amp_edit = gui.lineEdit(self, self, "A_tip", valueType=float, **common_options)
         l_edit = gui.lineEdit(self, self, "L_tip", valueType=float, **common_options)
         n_edit = gui.lineEdit(self, self, "n_fdm", valueType=int, **common_options)
-        theta_edit = gui.lineEdit(self, self, "theta_in", valueType=float, **common_options)
-        c_edit = lineEditFloatRange(self, self, "c_r", 0.0, 1.0, callback=self.update_snompy_op)
+        theta_edit = gui.lineEdit(
+            self, self, "theta_in", valueType=float, **common_options
+        )
+        c_edit = lineEditFloatRange(
+            self, self, "c_r", 0.0, 1.0, callback=self.update_snompy_op
+        )
         c_edit.setFixedWidth(common_options['controlWidth'])
 
         m_combo = gui.comboBox(
@@ -367,20 +377,20 @@ class OWSnomModel(FitPreprocess):
         lbt = gui.widgetLabel(self, "Angle of incidence (deg):")
         lbc = gui.widgetLabel(self, "C<sub>r</sub> (0-1):")
 
-        params_box.layout().addWidget(radius_edit,0,1)
-        params_box.layout().addWidget(lbr,0,0)
-        params_box.layout().addWidget(amp_edit,0,3)
-        params_box.layout().addWidget(lba,0,2)
-        params_box.layout().addWidget(lbl,1,0)
-        params_box.layout().addWidget(l_edit,1,1)
-        params_box.layout().addWidget(lbn,1,2)
-        params_box.layout().addWidget(n_edit,1,3)
-        params_box.layout().addWidget(lbt,2,0)
-        params_box.layout().addWidget(theta_edit,2,1)
-        params_box.layout().addWidget(lbc,2,2)
-        params_box.layout().addWidget(c_edit,2,3)
-        params_box.layout().addWidget(lbm,3,0)
-        params_box.layout().addWidget(m_combo,3,1)
+        params_box.layout().addWidget(radius_edit, 0, 1)
+        params_box.layout().addWidget(lbr, 0, 0)
+        params_box.layout().addWidget(amp_edit, 0, 3)
+        params_box.layout().addWidget(lba, 0, 2)
+        params_box.layout().addWidget(lbl, 1, 0)
+        params_box.layout().addWidget(l_edit, 1, 1)
+        params_box.layout().addWidget(lbn, 1, 2)
+        params_box.layout().addWidget(n_edit, 1, 3)
+        params_box.layout().addWidget(lbt, 2, 0)
+        params_box.layout().addWidget(theta_edit, 2, 1)
+        params_box.layout().addWidget(lbc, 2, 2)
+        params_box.layout().addWidget(c_edit, 2, 3)
+        params_box.layout().addWidget(lbm, 3, 0)
+        params_box.layout().addWidget(m_combo, 3, 1)
         # A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
 
     @Inputs.data
@@ -490,7 +500,11 @@ class OWSnomModel(FitPreprocess):
 
     def snompy_params_temp(self):
         eff_pol_n_params = EffPolNFdmParams(
-            A_tip=self.A_tip, n=self.n_fdm, r_tip=self.r_tip, L_tip=self.L_tip, method=self.fdm_method
+            A_tip=self.A_tip,
+            n=self.n_fdm,
+            r_tip=self.r_tip,
+            L_tip=self.L_tip,
+            method=self.fdm_method,
         )
         sigma_n_params = SigmaNParams(
             **eff_pol_n_params, theta_in=np.deg2rad(self.theta_in), c_r=self.c_r
