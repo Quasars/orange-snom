@@ -2,7 +2,7 @@ import multiprocessing
 import concurrent.futures
 import sys
 import time
-from AnyQt.QtWidgets import QFormLayout, QGridLayout
+from AnyQt.QtWidgets import QGridLayout
 
 import Orange
 import numpy as np
@@ -323,7 +323,9 @@ class OWSnomModel(FitPreprocess):
         self.preview_runner.preview_updated.connect(self.redraw_integral)
 
         # Model options
-        model_box = gui.widgetBox(self.controlArea, "Model Options")
+        model_box = gui.widgetBox(None, "Model Options")
+        self.controlArea.layout().insertWidget(2,model_box)
+
         gui.comboBox(
             model_box,
             self,
@@ -333,14 +335,20 @@ class OWSnomModel(FitPreprocess):
             sendSelectedValue=True,
         )
 
-        params_box = gui.widgetBox(self.controlArea,"FDM Parameters",orientation=QGridLayout())
+        params_box = gui.widgetBox(None,"FDM Parameters",orientation=QGridLayout())
+        self.controlArea.layout().insertWidget(3,params_box)
 
-        radius_edit = gui.lineEdit(self, self, "r_tip", valueType=float, callback=self.update_snompy_op)
-        amp_edit = gui.lineEdit(self, self, "A_tip", valueType=float, callback=self.update_snompy_op)
-        l_edit = gui.lineEdit(self, self, "L_tip", valueType=float, callback=self.update_snompy_op)
-        n_edit = gui.lineEdit(self, self, "n_fdm", valueType=float, callback=self.update_snompy_op)
-        theta_edit = gui.lineEdit(self, self, "theta_in", valueType=float, callback=self.update_snompy_op)
+        common_options = dict(
+            controlWidth=70,
+            callback=self.update_snompy_op,
+        )
+        radius_edit = gui.lineEdit(self, self, "r_tip", valueType=float, **common_options)
+        amp_edit = gui.lineEdit(self, self, "A_tip", valueType=float, **common_options)
+        l_edit = gui.lineEdit(self, self, "L_tip", valueType=float, **common_options)
+        n_edit = gui.lineEdit(self, self, "n_fdm", valueType=int, **common_options)
+        theta_edit = gui.lineEdit(self, self, "theta_in", valueType=float, **common_options)
         c_edit = lineEditFloatRange(self, self, "c_r", 0.0, 1.0, callback=self.update_snompy_op)
+        c_edit.setFixedWidth(common_options['controlWidth'])
 
         m_combo = gui.comboBox(
             self,
