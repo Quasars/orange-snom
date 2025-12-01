@@ -70,7 +70,25 @@ from orangecontrib.snom.widgets.snompy_util import (
 from orangecontrib.snom.temp import FitPreprocess, ComplexTable
 
 
-class StaticPermittivityEditor(ConstantModelEditor):
+class FixedModelMixin:
+    """Override defaults such that all parameters are vary=False by default.
+    Must be defined before base class in MRO, i.e.:
+        class MyEditor(FixedModelMixin, ConstantModelEditor):
+    """
+
+    _defaults = None
+
+    @classmethod
+    def defaults(cls):
+        if cls._defaults is None:
+            m = cls.model()
+            for name, value in m.def_vals.items():
+                m.set_param_hint(name, value=value, vary=False)
+            cls._defaults = m.param_hints
+        return cls._defaults
+
+
+class StaticPermittivityEditor(FixedModelMixin, ConstantModelEditor):
     name = "Static Permittivity"
 
 
@@ -97,7 +115,7 @@ class InterfaceEditor(PlaceholderEditor):
     prefix_generic = 'if'
 
 
-class FiniteInterfaceEditor(ConstantModelEditor):
+class FiniteInterfaceEditor(FixedModelMixin, ConstantModelEditor):
     name = "Finite Interface"
     model = FiniteInterface
     prefix_generic = 'fif'
@@ -109,7 +127,7 @@ class ReferenceEditor(PlaceholderEditor):
     prefix_generic = 'ref'
 
 
-class LorentzianPermittivityEditor(ModelEditor):
+class LorentzianPermittivityEditor(FixedModelMixin, ModelEditor):
     name = "Lorentzian Permittivity"
     model = LorentzianPermittivityModel
     prefix_generic = 'lp'
@@ -125,7 +143,7 @@ class LorentzianPermittivityEditor(ModelEditor):
         return ('nu_j',)
 
 
-class DrudePermittivityEditor(ModelEditor):
+class DrudePermittivityEditor(FixedModelMixin, ModelEditor):
     name = "Drude Permittivity"
     model = DrudePermittivityModel
     prefix_generic = 'dp'
