@@ -319,6 +319,7 @@ class OWSnomModel(FitPreprocess):
     n_fdm = settings.Setting(3)
     theta_in = settings.Setting(60.0)  # degrees
     c_r = settings.Setting(0.3)
+    phase_offset = settings.Setting(False)
     fdm_method = settings.Setting("Q_ave")
 
     def __init__(self):
@@ -397,6 +398,7 @@ class OWSnomModel(FitPreprocess):
             items=["bulk", "multi", "Q_ave"],
             sendSelectedValue=True,
         )
+        phase_cb = gui.checkBox(self,self,"phase_offset","Phase offset",callback=self.update_snompy_op)
 
         lbr = gui.widgetLabel(self, "Tip radius (m):")
         lba = gui.widgetLabel(self, "Tip amplitude (m):")
@@ -420,6 +422,7 @@ class OWSnomModel(FitPreprocess):
         params_box.layout().addWidget(c_edit, 2, 3)
         params_box.layout().addWidget(lbm, 3, 0)
         params_box.layout().addWidget(m_combo, 3, 1)
+        params_box.layout().addWidget(phase_cb, 3, 2)
         # A_tip=20e-9, n=3, r_tip=30e-9, L_tip=350e-9, method="Q_ave"
 
     @Inputs.data
@@ -539,7 +542,7 @@ class OWSnomModel(FitPreprocess):
             method=self.fdm_method,
         )
         sigma_n_params = SigmaNParams(
-            **eff_pol_n_params, theta_in=np.deg2rad(self.theta_in), c_r=self.c_r
+            **eff_pol_n_params, theta_in=np.deg2rad(self.theta_in), c_r=float(self.c_r), phase_offset=self.phase_offset
         )
         return sigma_n_params
 
