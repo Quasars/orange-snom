@@ -167,6 +167,7 @@ class ReflCoefParams(TypedDict, total=False):
 
 class SigmaNParams(EffPolNFdmParams, ReflCoefParams, total=False):
     c_r: float
+    phase_offset: bool
 
 
 class SigmaN(SnompyOperationBase):
@@ -177,7 +178,11 @@ class SigmaN(SnompyOperationBase):
         alpha_eff = EffPolNFdm.from_subclass_params(self.parameters)(sample)
         r_coef = sample.refl_coef(**filter_typed_dict(self.parameters, ReflCoefParams))
         c_r = self.parameters['c_r']  # Experimental weighting factor
-        return (1 + c_r * r_coef) ** 2 * alpha_eff
+        sigma_full = (1 + c_r * r_coef) ** 2 * alpha_eff
+        if self.parameters['phase_offset']:
+            return sigma_full * np.exp(-1j * np.min(np.angle(sigma_full)))
+        else:
+            return sigma_full 
 
 
 def iter_layer(m_iter: Iterable[Model]) -> Generator[Reference | Model, Any, None]:
