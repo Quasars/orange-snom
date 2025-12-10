@@ -137,7 +137,7 @@ class LorentzianPermittivityEditor(FixedModelMixin, ModelEditor):
 
     @staticmethod
     def model_parameters():
-        return 'nu_j', 'A_j', 'gamma_j', 'eps_inf'
+        return 'nu_j', 'A_j', 'gamma_j'
 
     @staticmethod
     def model_lines():
@@ -398,7 +398,9 @@ class OWSnomModel(FitPreprocess):
             items=["bulk", "multi", "Q_ave"],
             sendSelectedValue=True,
         )
-        phase_cb = gui.checkBox(self,self,"phase_offset","Phase offset",callback=self.update_snompy_op)
+        phase_cb = gui.checkBox(
+            self, self, "phase_offset", "Phase offset", callback=self.update_snompy_op
+        )
 
         lbr = gui.widgetLabel(self, "Tip radius (m):")
         lba = gui.widgetLabel(self, "Tip amplitude (m):")
@@ -542,7 +544,10 @@ class OWSnomModel(FitPreprocess):
             method=self.fdm_method,
         )
         sigma_n_params = SigmaNParams(
-            **eff_pol_n_params, theta_in=np.deg2rad(self.theta_in), c_r=float(self.c_r), phase_offset=self.phase_offset
+            **eff_pol_n_params,
+            theta_in=np.deg2rad(self.theta_in),
+            c_r=float(self.c_r),
+            phase_offset=self.phase_offset,
         )
         return sigma_n_params
 
@@ -652,7 +657,12 @@ def demo_pmma_model(widget):
                     'nu_j': {'value': 1738e2, 'vary': 'fixed'},
                     'A_j': {'value': 4.2e8, 'vary': 'fixed'},
                     'gamma_j': {'value': 20e2, 'vary': 'fixed'},
-                    'eps_inf': {'value': 2, 'vary': 'fixed'},
+                },
+            ),
+            (
+                'orangecontrib.spectroscopy.widgets.owsnompy.const',
+                {
+                    'c': {'value': 2, 'vary': 'fixed'},
                 },
             ),
             # Si permitivitty in the mid-infrared
