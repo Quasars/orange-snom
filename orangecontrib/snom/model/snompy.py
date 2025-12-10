@@ -10,9 +10,9 @@ from lmfit.models import ConstantModel
 
 
 # Wrapping existing function, so re-using "A_j" notation (for now).
-def lorentz_perm(x, nu_j=0.0, gamma_j=1.0, A_j=1.0, eps_inf=1.0):  # noqa: N803
+def lorentz_perm(x, nu_j=0.0, gamma_j=1.0, A_j=1.0):  # noqa: N803
     """Wraps snompy.sample.lorentz_perm with lmfit-compatible interface."""
-    return snompy.sample.lorentz_perm(x, nu_j, gamma_j, A_j=A_j, eps_inf=eps_inf)
+    return snompy.sample.lorentz_perm(x, nu_j, gamma_j, A_j=A_j, eps_inf=0.0)
 
 
 class LorentzianPermittivityModel(Model):

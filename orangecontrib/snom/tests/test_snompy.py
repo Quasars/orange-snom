@@ -31,12 +31,13 @@ class TestSnompyModel(unittest.TestCase):
             ConstantModel(name="Air", prefix="const1_"),
             FiniteInterface(prefix="fif2_"),
             LorentzianPermittivityModel(name="PMMA", prefix="lp3_"),
+            ConstantModel(name="PMMA-Static", prefix="const4_"),
             Interface(),
-            ConstantModel(name="Si", prefix="const5_"),
+            ConstantModel(name="Si", prefix="const6_"),
             Reference(),
-            ConstantModel(name="Air", prefix="const7_"),
+            ConstantModel(name="Air", prefix="const8_"),
             Interface(),
-            DrudePermittivityModel(name="Au", prefix="dp9_"),
+            DrudePermittivityModel(name="Au", prefix="dp10_"),
         ]
         self.x = np.linspace(1680, 1800, 128) * 1e2  # nuvac
         self.eff_pol_params = EffPolFdmParams(r_tip=30e-9, L_tip=350e-9, method="Q_ave")
@@ -56,12 +57,12 @@ class TestSnompyModel(unittest.TestCase):
             lp3_nu_j={'value': 1738e2, 'vary': False},
             lp3_A_j={'value': 4.2e8, 'vary': False},
             lp3_gamma_j={'value': 20e2, 'vary': False},
-            lp3_eps_inf={'value': 2, 'vary': False},
-            const5_c={'value': 11.7, 'vary': False},
-            const7_c={'value': 1, 'vary': False},
-            dp9_nu_plasma={'value': 7.25e6, 'vary': False},
-            dp9_gamma={'value': 2.16e4, 'vary': False},
-            dp9_eps_inf={'value': 1, 'vary': False},
+            const4_c={'value': 2, 'vary': False},
+            const6_c={'value': 11.7, 'vary': False},
+            const8_c={'value': 1, 'vary': False},
+            dp10_nu_plasma={'value': 7.25e6, 'vary': False},
+            dp10_gamma={'value': 2.16e4, 'vary': False},
+            dp10_eps_inf={'value': 1, 'vary': False},
         )
 
     def test_fdm_pmma_single(self):
@@ -70,14 +71,14 @@ class TestSnompyModel(unittest.TestCase):
         alpha_n = EffPolNFdm(self.eff_pol_n_params)
         sigma_n = SigmaN(self.sigma_n_params)
         submodels = {
-            "eps_pmma": (self.model_list[2:3], sigma_n),  # op is ignored
-            "eps_Au": (self.model_list[8:9], sigma_n),  # op is ignored
-            "alpha_eff_pmma": (self.model_list[:5], alpha_n),
-            "alpha_eff_pmma_nomod": (self.model_list[:5], alpha),
-            "sigma_pmma": (self.model_list[:5], sigma_n),
-            "alpha_eff_Au": (self.model_list[6:9], alpha_n),
-            "alpha_eff_Au_nomod": (self.model_list[6:9], alpha),
-            "sigma_Au": (self.model_list[6:9], sigma_n),
+            "eps_pmma": (self.model_list[2:4], sigma_n),  # op is ignored
+            "eps_Au": (self.model_list[9:10], sigma_n),  # op is ignored
+            "alpha_eff_pmma": (self.model_list[:6], alpha_n),
+            "alpha_eff_pmma_nomod": (self.model_list[:6], alpha),
+            "sigma_pmma": (self.model_list[:6], sigma_n),
+            "alpha_eff_Au": (self.model_list[7:10], alpha_n),
+            "alpha_eff_Au_nomod": (self.model_list[7:10], alpha),
+            "sigma_Au": (self.model_list[7:10], sigma_n),
             "eta_n": (self.model_list, sigma_n),  # op(sample) / op(reference)
         }
         for step, snompy in self.snompy_t_dependent_spectra.items():
