@@ -6,10 +6,12 @@ from AnyQt.QtWidgets import QGridLayout
 
 import Orange
 import numpy as np
-from Orange.data import Table, Domain
+from Orange.data import Table, Domain, Values
+from Orange.data.sql.filter import FilterString
 from Orange.widgets import gui, settings
 from Orange.widgets.data.owpreprocess import PreprocessAction, Description, icon_path
 from Orange.widgets.data.utils.preprocess import DescriptionRole
+from Orange.widgets.utils.annotated_data import ANNOTATED_DATA_SIGNAL_NAME
 from Orange.widgets.utils.concurrent import TaskState
 from Orange.widgets.utils.sql import check_sql_input
 
@@ -20,7 +22,7 @@ from orangecontrib.spectroscopy.widgets.owpreprocess import (
     SpectralPreprocess,
 )
 from orangecontrib.spectroscopy.widgets.owspectra import SELECTONE
-from orangewidget.utils.signals import Input
+from orangewidget.utils.signals import Input, Output
 
 from orangecontrib.snom.widgets.snompy_compute import (
     pool_fit2,
@@ -68,7 +70,6 @@ from orangecontrib.snom.widgets.snompy_util import (
     fit_results_table,
     load_op,
 )
-from orangecontrib.snom.temp import FitPreprocess, ComplexTable
 
 
 class FixedModelMixin:
@@ -195,6 +196,45 @@ def valid_model(m_def):
     return model is not None
 
 
+class ComplexTable(Table):
+    """Dummy to test out ComplexTable handling"""
+
+    @staticmethod
+    def amplitude_phase_to_complex(amplitude: np.array, phase: np.array) -> np.array:
+        return np.asarray(amplitude * np.exp(1j * phase, dtype=np.complex128))
+
+    @classmethod
+    def from_amplitude_phase_tables(cls, amplitude: Table, phase: Table):
+        table = cls.from_table(amplitude.domain, amplitude)
+        # Todo handle mis-matched amplitude / phase tables
+        # phase = phase.transform(amplitude.domain)
+        with table.unlocked_reference():
+            table.X = cls.amplitude_phase_to_complex(amplitude.X, phase.X)
+        return table
+
+    @classmethod
+    def from_interleaved_table(cls, interleaved: Table):
+        filter_amplitude = Values(
+            [FilterString("channel", FilterString.EndsWith, ref="A")]
+        )
+        filter_phase = Values([FilterString("channel", FilterString.EndsWith, ref="P")])
+        return cls.from_amplitude_phase_tables(
+            filter_amplitude(interleaved), filter_phase(interleaved)
+        )
+
+    def to_amplitude_table(self) -> Table:
+        table = Table.from_table(self.domain, self)
+        with table.unlocked_reference():
+            table.X = np.abs(self.X)
+        return table
+
+    def to_phase_table(self) -> Table:
+        table = Table.from_table(self.domain, self)
+        with table.unlocked_reference():
+            table.X = np.angle(self.X)
+        return table
+
+
 class ComplexPeakPreviewRunner(PeakPreviewRunner):
     def show_preview(self, show_info_anyway=False):
         """Shows preview and also passes preview data to the widgets
@@ -300,6 +340,51 @@ class ComplexPeakPreviewRunner(PeakPreviewRunner):
         return orig_data, data, model_result
 
 
+class FitPreprocess(SpectralPreprocess, openclass=True):
+    BUTTON_ADD_LABEL = "Add model..."
+
+    class Outputs:
+        fit_params = Output("Fit Parameters", Table, default=True)
+        fits = Output("Fits", Table)
+        residuals = Output("Residuals", Table)
+        annotated_data = Output(ANNOTATED_DATA_SIGNAL_NAME, Table)
+
+    preview_on_image = True
+
+    def __init__(self):
+        super().__init__()
+
+    def redraw_integral(self):
+        """Widget-specific"""
+        raise NotImplementedError
+
+    def create_outputs(self):
+        """Currently widget-specific (different m_def serializations)"""
+        raise NotImplementedError
+
+    @staticmethod
+    def run_task(data: Table, m_def, state: TaskState):
+        """Currently widget-specific (different m_def serializations)"""
+        raise NotImplementedError
+
+    def on_done(self, results):
+        fit_params, fits, residuals, annotated_data = results
+        self.Outputs.fit_params.send(fit_params)
+        self.Outputs.fits.send(fits)
+        self.Outputs.residuals.send(residuals)
+        self.Outputs.annotated_data.send(annotated_data)
+
+    def on_exception(self, ex):
+        try:
+            super().on_exception(ex)
+        except ValueError:
+            self.Error.applying(ex)
+            self.Outputs.fit_params.send(None)
+            self.Outputs.fits.send(None)
+            self.Outputs.residuals.send(None)
+            self.Outputs.annotated_data.send(None)
+
+
 class OWSnomModel(FitPreprocess):
     name = "SNOM Model"
     description = "Model SNOM spectra with snompy"
@@ -329,8 +414,7 @@ class OWSnomModel(FitPreprocess):
         self.data_phase = None
 
         self.snompy_op_selection = "SigmaN"
-        # self.snompy_params = {}
-        self.snompy_params = self.snompy_params_temp()
+        self.snompy_params = self.snompy_params_from_settings()
 
         # SpectralPreprocess
         SpectralPreprocess.__init__(self)
@@ -463,9 +547,7 @@ class OWSnomModel(FitPreprocess):
 
     def update_snompy_op(self):
         # To update the new parameters
-        self.snompy_params = self.snompy_params_temp()
-        print(self.snompy_op_selection)
-        print(self.snompy_params)
+        self.snompy_params = self.snompy_params_from_settings()
         # TBD: set self.snompy_op to dict or instance?
         # self.snompy_op = SnompyOperationBase.subclasses[self.snompy_op_selection](self.snompy_params) # noqa F401
         self.on_modelchanged()
@@ -535,7 +617,7 @@ class OWSnomModel(FitPreprocess):
             dis_angle, self.markings_list_after, self.curveplot_phase
         )
 
-    def snompy_params_temp(self):
+    def snompy_params_from_settings(self):
         eff_pol_n_params = EffPolNFdmParams(
             A_tip=self.A_tip,
             n=self.n_fdm,
