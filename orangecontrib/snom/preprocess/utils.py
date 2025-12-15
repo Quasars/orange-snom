@@ -6,6 +6,7 @@ from orangecontrib.spectroscopy.preprocess import (
     CommonDomain,
     SelectColumn,
     WrongReferenceException,
+    MissingReferenceException,
 )
 from orangecontrib.spectroscopy.utils import (
     InvalidAxisException,
@@ -81,6 +82,11 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
 
 
 class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
+    def __init__(self, reference):
+        self.reference = reference
+        if self.reference is None:
+            raise MissingReferenceException("Preprocessor needs a reference.")
+
     def __call__(self, data, image_opts):
         data = _prepare_table_for_image(data, image_opts)
         reference = _prepare_table_for_image(self.reference, image_opts)

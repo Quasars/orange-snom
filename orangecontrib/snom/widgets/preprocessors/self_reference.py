@@ -1,6 +1,5 @@
 from AnyQt.QtWidgets import QFormLayout, QLabel
 
-from orangecontrib.spectroscopy.preprocess import MissingReferenceException
 from orangecontrib.spectroscopy.widgets.preprocessors.utils import (
     BaseEditorOrange,
     REFERENCE_DATA_PARAM,
@@ -15,11 +14,6 @@ from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_e
 
 
 class SelfRef(PreprocessImageOpts2DOnlyWholeReference):
-    def __init__(self, reference):
-        self.reference = reference
-        if self.reference is None:
-            raise MissingReferenceException("Self-referencing needs a reference")
-
     def transform_image(self, image, ref_image, data):
         datatype = data.attributes.get("measurement.signaltype", "Phase")
         return SelfReference(
