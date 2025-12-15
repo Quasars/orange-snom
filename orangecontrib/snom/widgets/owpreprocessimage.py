@@ -149,7 +149,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
     icon = "icons/preprocessimage.svg"
     priority = 1010
 
-    settings_version = 2
+    settings_version = 3
 
     settingsHandler = DomainContextHandler()
 
