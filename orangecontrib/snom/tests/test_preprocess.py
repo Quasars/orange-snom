@@ -56,6 +56,15 @@ class TestPreprocessImageOpts2DOnlyWhole(unittest.TestCase):
         out = proc(wl, imageopts)
         np.testing.assert_equal(out.X[:, 0], wl.X[:, 1] * 2)
 
+    def test_all(self):
+        wl = test_whitelight_mulcol()
+        imageopts = {'attr_x': 'map_x', 'attr_y': 'map_y', 'attr_value': '2.000000'}
+        proc = _MultiplyImage()
+        out = proc(wl, imageopts, run_all=True)
+        np.testing.assert_equal(out.X[:, 0], wl.X[:, 0] * 1)
+        np.testing.assert_equal(out.X[:, 1], wl.X[:, 0] * 2)
+        np.testing.assert_equal(out.X[:, 2], wl.X[:, 0] * 3)
+
 
 class _MultiplyImageReference(PreprocessImageOpts2DOnlyWholeReference):
     def transform_image(self, image, ref_image, data):
@@ -70,3 +79,12 @@ class TestPreprocessImageOpts2DOnlyWholeReference(unittest.TestCase):
         proc = _MultiplyImageReference(reference=wl)
         out = proc(wl, imageopts)
         np.testing.assert_equal(out.X[:, 0], wl.X[:, 1] * wl.X[:, 1] * 2)
+
+    def test_all(self):
+        wl = test_whitelight_mulcol()
+        imageopts = {'attr_x': 'map_x', 'attr_y': 'map_y', 'attr_value': '2.000000'}
+        proc = _MultiplyImageReference(reference=wl)
+        out = proc(wl, imageopts, run_all=True)
+        np.testing.assert_equal(out.X[:, 0], wl.X[:, 0] * wl.X[:, 0] * 1)
+        np.testing.assert_equal(out.X[:, 1], wl.X[:, 1] * wl.X[:, 1] * 2)
+        np.testing.assert_equal(out.X[:, 2], wl.X[:, 2] * wl.X[:, 2] * 3)
