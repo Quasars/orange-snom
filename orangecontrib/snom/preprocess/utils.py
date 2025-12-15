@@ -117,23 +117,22 @@ class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
             newdata = _prepare_table_for_image(data, image_opts)
 
         ref_attrs = [v.name for v in self.reference.domain.attributes]
-        reflen = len(ref_attrs)
-        image_opts_ref = image_opts.copy()
 
-        if attrs_to_run != ref_attrs or reflen != 1:
+        if set(attrs_to_run) != set(ref_attrs) or len(ref_attrs) != 1:
             WrongReferenceException(
                 "Reference has to contain the same features or be single-featured"
             )
 
+        image_opts = image_opts.copy()  # because it will be modified
+        image_opts_ref = image_opts
+
+        if len(ref_attrs) == 1:  # use the only reference regardless of the name
+            image_opts_ref = image_opts.copy()  # unlink to image_opts
+            image_opts_ref["attr_value"] = ref_attrs[0]
+
         M = np.full_like(newdata.X, np.nan)
         for i, attr in enumerate(attrs_to_run):
             image_opts["attr_value"] = attr
-            # If reference is longer, than it has the same features as data
-            # If it is single-featured, than always use the single image for correction
-            if reflen != 1:
-                image_opts_ref["attr_value"] = ref_attrs[i]
-            else:
-                image_opts_ref["attr_value"] = ref_attrs[0]
 
             try:
                 temp = _prepare_table_for_image(newdata, image_opts)
@@ -146,7 +145,7 @@ class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
             try:
                 image, indices = _image_from_table(temp, image_opts)
                 ref_image, _ = _image_from_table(reference, image_opts_ref)
-                transformed = self.transform_image(image, ref_image, newdata)
+                transformed = self.transform_image(image, ref_image, temp)
                 M[:, i] = transformed[indices].reshape(-1)
             except InvalidAxisException:
                 M[:, i] = np.full(len(newdata), np.nan)
