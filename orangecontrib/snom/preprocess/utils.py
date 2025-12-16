@@ -71,7 +71,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
             newdata = _prepare_table_for_image(data, image_opts)
 
         image_opts = image_opts.copy()  # otherwise this input will be changed
-        M = np.full_like(newdata.X, np.nan)
+        new_vals = np.full_like(newdata.X, np.nan)
         for i, attr in enumerate(attrs_to_run):
             image_opts["attr_value"] = attr
             try:
@@ -84,12 +84,12 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
             try:
                 image, indices = _image_from_table(temp, image_opts)
                 transformed = self.transform_image(image, newdata)
-                M[:, i] = transformed[indices].reshape(-1)
+                new_vals[:, i] = transformed[indices].reshape(-1)
             except InvalidAxisException:
-                M[:, i] = np.full(len(newdata), np.nan)
+                new_vals[:, i] = np.full(len(newdata), np.nan)
 
         with newdata.unlocked(newdata.X):
-            newdata.X = M
+            newdata.X = new_vals
 
         return newdata
 
@@ -131,7 +131,7 @@ class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
             image_opts_ref = image_opts.copy()  # unlink to image_opts
             image_opts_ref["attr_value"] = ref_attrs[0]
 
-        M = np.full_like(newdata.X, np.nan)
+        new_vals = np.full_like(newdata.X, np.nan)
         for i, attr in enumerate(attrs_to_run):
             image_opts["attr_value"] = attr
 
@@ -147,12 +147,12 @@ class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
                 image, indices = _image_from_table(temp, image_opts)
                 ref_image, _ = _image_from_table(reference, image_opts_ref)
                 transformed = self.transform_image(image, ref_image, temp)
-                M[:, i] = transformed[indices].reshape(-1)
+                new_vals[:, i] = transformed[indices].reshape(-1)
             except InvalidAxisException:
-                M[:, i] = np.full(len(newdata), np.nan)
+                new_vals[:, i] = np.full(len(newdata), np.nan)
 
         with newdata.unlocked(newdata.X):
-            newdata.X = M
+            newdata.X = new_vals
 
         return newdata
 
