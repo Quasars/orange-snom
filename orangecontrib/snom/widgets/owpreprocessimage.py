@@ -88,20 +88,16 @@ class ImagePreviewRunner(PreviewRunner):
             master.preprocessormodel.item(i)
             for i in range(master.preprocessormodel.rowCount())
         ]
-        if master.data is not None:
-            data = master.sample_data(master.data)
-            image_opts = master.image_opts()
-            self.start(
-                self.run_preview,
-                data,
-                master.reference_data,
-                image_opts,
-                pp_def,
-                master.process_reference,
-            )
-        else:
-            master.curveplot.set_data(None)
-            master.curveplot_after.set_data(None)
+        data = master.sample_data(master.data)
+        image_opts = master.image_opts()
+        self.start(
+            self.run_preview,
+            data,
+            master.reference_data,
+            image_opts,
+            pp_def,
+            master.process_reference,
+        )
 
     @staticmethod
     def run_preview(
@@ -123,7 +119,8 @@ class ImagePreviewRunner(PreviewRunner):
             state.set_partial_result((i, data, reference))
             item = pp_def[i]
             pp = create_preprocessor(item, reference)
-            data = execute_with_image_opts(pp, data, image_opts)
+            if data is not None:
+                data = execute_with_image_opts(pp, data, image_opts)
             progress_interrupt(0)
             # NOTE: We dont always want to process the reference, it could be an option in preprocessimage maybe
             if process_reference and reference is not None and i != n - 1:
@@ -272,7 +269,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
         return {
             'attr_x': str(self.attr_x),
             'attr_y': str(self.attr_y),
-            'attr_value': str(self.attr_value),
+            'attr_value': str(self.attr_value) if self.attr_value is not None else None,
         }
 
     def create_outputs(self):
@@ -294,6 +291,15 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
     def set_data(self, data):
         self.curveplot.set_data(None)
         self.curveplot_after.set_data(None)
+
+        def catts(data):
+            return [
+                a for a in data.domain.attributes if isinstance(a, ContinuousVariable)
+            ]
+
+        if data is not None and len(catts(data)) == 0:
+            # invalid data, dataset needs at least one continuous variable
+            data = None
 
         super().set_data(data)
 
