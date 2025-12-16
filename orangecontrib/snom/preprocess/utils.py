@@ -61,7 +61,7 @@ def _image_from_table(data, image_opts):
 
 class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
     def __call__(self, data, image_opts, run_all=False):
-        if run_all:
+        if run_all or len(data.domain.attributes) == 0:
             attrs_to_run = [v.name for v in data.domain.attributes]
             newdata = data.copy()
         else:
@@ -108,7 +108,7 @@ class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
             raise MissingReferenceException("Preprocessor needs a reference.")
 
     def __call__(self, data, image_opts, run_all=False):
-        if run_all:
+        if run_all or len(data.domain.attributes) == 0:
             attrs_to_run = [v.name for v in data.domain.attributes]
             newdata = data.copy()
         else:

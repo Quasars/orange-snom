@@ -65,6 +65,16 @@ class TestPreprocessImageOpts2DOnlyWhole(unittest.TestCase):
         np.testing.assert_equal(out.X[:, 1], wl.X[:, 0] * 2)
         np.testing.assert_equal(out.X[:, 2], wl.X[:, 0] * 3)
 
+    def test_no_atts(self):
+        wl = Table("whitelight.gsf")
+        no_atts = wl.transform(Domain([], wl.domain.class_vars, wl.domain.metas))
+        imageopts = {'attr_x': 'map_x', 'attr_y': 'map_y', 'attr_value': '1.000000'}
+        proc = _MultiplyImage()
+        out = proc(no_atts, imageopts, run_all=False)
+        np.testing.assert_equal(out.X, no_atts.X)
+        out = proc(no_atts, imageopts, run_all=True)
+        np.testing.assert_equal(out.X, no_atts.X)
+
 
 class _MultiplyImageReference(PreprocessImageOpts2DOnlyWholeReference):
     def transform_image(self, image, ref_image, data):
@@ -88,3 +98,13 @@ class TestPreprocessImageOpts2DOnlyWholeReference(unittest.TestCase):
         np.testing.assert_equal(out.X[:, 0], wl.X[:, 0] * wl.X[:, 0] * 1)
         np.testing.assert_equal(out.X[:, 1], wl.X[:, 1] * wl.X[:, 1] * 2)
         np.testing.assert_equal(out.X[:, 2], wl.X[:, 2] * wl.X[:, 2] * 3)
+
+    def test_no_atts(self):
+        wl = Table("whitelight.gsf")
+        no_atts = wl.transform(Domain([], wl.domain.class_vars, wl.domain.metas))
+        imageopts = {'attr_x': 'map_x', 'attr_y': 'map_y', 'attr_value': '1.000000'}
+        proc = _MultiplyImageReference(reference=wl)
+        out = proc(no_atts, imageopts, run_all=False)
+        np.testing.assert_equal(out.X, no_atts.X)
+        out = proc(no_atts, imageopts, run_all=True)
+        np.testing.assert_equal(out.X, no_atts.X)
