@@ -20,7 +20,9 @@ class PreprocessImageOpts(Preprocess):
 
 
 class PreprocessImageOpts2D(PreprocessImageOpts):
-    def __call__(self, data, image_opts):
+    def __call__(self, data, image_opts, run_all=False):
+        if run_all:
+            raise Exception("run_all not supported yet")
         common = self.image_transformer(data, image_opts)
         at = data.domain[image_opts["attr_value"]].copy(
             compute_value=SelectColumn(0, common)
