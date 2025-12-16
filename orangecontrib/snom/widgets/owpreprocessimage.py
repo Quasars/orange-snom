@@ -122,7 +122,6 @@ class ImagePreviewRunner(PreviewRunner):
             if data is not None:
                 data = execute_with_image_opts(pp, data, image_opts)
             progress_interrupt(0)
-            # NOTE: We dont always want to process the reference, it could be an option in preprocessimage maybe
             if process_reference and reference is not None and i != n - 1:
                 reference = execute_with_image_opts(pp, reference, image_opts)
         progress_interrupt(0)
@@ -356,7 +355,6 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
                 # run_all=True goes across all the attributes
                 data = execute_with_image_opts(pp, data, image_opts, run_all=True)
             progress_interrupt((i / n + 0.5 / n) * 100)
-            # NOTE: We dont always want to process the reference, it could be an option in preprocessimage maybe
             if process_reference and reference is not None and i != n - 1:
                 reference = execute_with_image_opts(
                     pp, reference, image_opts, run_all=True
