@@ -70,6 +70,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
             attrs_to_run = [image_opts["attr_value"]]
             newdata = _prepare_table_for_image(data, image_opts)
 
+        image_opts = image_opts.copy()  # otherwise this input will be changed
         M = np.full_like(newdata.X, np.nan)
         for i, attr in enumerate(attrs_to_run):
             image_opts["attr_value"] = attr
