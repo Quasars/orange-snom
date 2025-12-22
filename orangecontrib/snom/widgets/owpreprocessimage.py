@@ -147,7 +147,9 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
 
     settings_version = 3
 
-    settingsHandler = DomainContextHandler()
+    settingsHandler = DomainContextHandler(
+        match_values=DomainContextHandler.MATCH_VALUES_ALL
+    )
 
     _max_preview_spectra = 1000000
     preview_curves = Setting(100000)
@@ -156,8 +158,8 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
     BUTTON_ADD_LABEL = "Add preprocessor..."
 
     attr_value = ContextSetting(None)
-    attr_mask = ContextSetting(None)
-    value_mask = ContextSetting(1.0)
+    attr_mask = ContextSetting(None, exclude_attributes=True)
+    value_mask = ContextSetting(0)
     attr_x = ContextSetting(None, exclude_attributes=True)
     attr_y = ContextSetting(None, exclude_attributes=True)
 
@@ -167,7 +169,6 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
 
     class Warning(SpectralImagePreprocess.Warning):
         threshold_error = Msg("Low slider should be less than High")
-        no_mask_group = Msg("No groups found for masking")
 
     class Error(SpectralImagePreprocess.Error):
         image_too_big = Msg("Image for chosen features is too big ({} x {}).")
@@ -198,6 +199,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
                 DomainModel.METAS,
             ),
             valid_types=DiscreteVariable,
+            placeholder="None",
         )
 
         self.feature_value_model = DomainModel(
@@ -272,6 +274,9 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
 
         self.contextAboutToBeOpened.connect(lambda x: self.init_interface_data(x[0]))
 
+        # update values choosing mask variable
+        self.contextOpened.connect(self.update_mask_value_items)
+
         self.preview_runner.preview_updated.connect(self.redraw_data)
 
     def update_attr(self):
@@ -290,7 +295,6 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
 
     def init_interface_data(self, data):
         self.init_attr_values(data)
-        self.init_mask_values(data)
         self.curveplot.init_interface_data(data)
         self.curveplot_after.init_interface_data(data)
 
@@ -303,24 +307,15 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
         self.xy_model.set_domain(domain)
         self.attr_x = self.xy_model[0] if self.xy_model else None
         self.attr_y = self.xy_model[1] if len(self.xy_model) >= 2 else self.attr_x
-
-    def init_mask_values(self, data):
-        domain = data.domain if data is not None else None
         self.mask_value_model.set_domain(domain)
-        if self.data is not None:
-            self.update_mask_value_items()
+        self.mask_value = None
 
     def update_mask_value_items(self):
-        self.Warning.no_mask_group.clear()
         self.cb_mask_value.clear()
-        try:
+        if self.attr_mask is not None:
             self.cb_mask_value.addItems(list(self.data.domain[self.attr_mask].values))
-            self.cb_mask_value.setCurrentIndex(0)
-            self.value_mask = 0
-            # Need to update manually
-            self.update_mask()
-        except KeyError:
-            self.Warning.no_mask_group()
+            self.cb_mask_value.setCurrentIndex(self.value_mask)
+        self.update_mask()
 
     def update_mask(self):
         self.on_modelchanged()
@@ -384,7 +379,6 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
             self.contextAboutToBeOpened.emit([data])
 
         self.update_attr()  # update imageplots attributes from the master
-        self.init_mask_values(data)
 
     @staticmethod
     def run_task(
