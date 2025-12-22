@@ -6,10 +6,7 @@ from Orange.data import Domain, DiscreteVariable, ContinuousVariable
 from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.utils.itemmodels import DomainModel
 from orangecontrib.snom.widgets.preprocessors.registry import preprocess_image_editors
-from orangecontrib.snom.preprocess.utils import (
-    PreprocessImageOpts,
-    SelectionMaskImageOpts2DMixin,
-)
+from orangecontrib.snom.preprocess.utils import PreprocessImageOpts
 from orangewidget import gui
 from orangewidget.settings import SettingProvider, ContextSetting, Setting
 
@@ -72,9 +69,9 @@ class SpectralImagePreprocess(GeneralPreprocess, ImagePreviews, openclass=True):
         ImagePreviews.shutdown(self)
 
 
-def execute_with_image_opts(pp, data, image_opts, run_all=False, mask=None):
+def execute_with_image_opts(pp, data, image_opts, run_all=False):
     if isinstance(pp, PreprocessImageOpts):
-        return pp(data, image_opts, run_all=run_all, mask=mask)
+        return pp(data, image_opts, run_all=run_all)
     return pp(data)
 
 
@@ -97,7 +94,6 @@ class ImagePreviewRunner(PreviewRunner):
             self.run_preview,
             data,
             master.reference_data,
-            master.mask_table,
             image_opts,
             pp_def,
             master.process_reference,
@@ -107,7 +103,6 @@ class ImagePreviewRunner(PreviewRunner):
     def run_preview(
         data: Orange.data.Table,
         reference: Orange.data.Table,
-        mask: Orange.data.Table,
         image_opts,
         pp_def,
         process_reference,
@@ -125,7 +120,7 @@ class ImagePreviewRunner(PreviewRunner):
             item = pp_def[i]
             pp = create_preprocessor(item, reference)
             if data is not None:
-                data = execute_with_image_opts(pp, data, image_opts, mask=mask)
+                data = execute_with_image_opts(pp, data, image_opts)
             progress_interrupt(0)
             if process_reference and reference is not None and i != n - 1:
                 reference = execute_with_image_opts(pp, reference, image_opts)
@@ -143,9 +138,7 @@ class SpectralImagePreprocessReference(SpectralImagePreprocess, openclass=True):
         self.reference_data = reference
 
 
-class OWPreprocessImage(
-    SpectralImagePreprocessReference, SelectionMaskImageOpts2DMixin
-):
+class OWPreprocessImage(SpectralImagePreprocessReference):
     name = "Preprocess image"
     id = "orangecontrib.snom.widgets.preprocessimage"
     description = "Process image"
@@ -163,12 +156,10 @@ class OWPreprocessImage(
     BUTTON_ADD_LABEL = "Add preprocessor..."
 
     attr_value = ContextSetting(None)
-    mask_attr_value = ContextSetting(None)
-    mask_group_value = ContextSetting(1.0)
+    attr_mask = ContextSetting(None)
+    value_mask = ContextSetting(1.0)
     attr_x = ContextSetting(None, exclude_attributes=True)
     attr_y = ContextSetting(None, exclude_attributes=True)
-
-    mask_table = None
 
     class Outputs:
         preprocessed_data = Output("Integrated Data", Orange.data.Table, default=True)
@@ -194,7 +185,6 @@ class OWPreprocessImage(
     def __init__(self):
         self.markings_list = []
         super().__init__()
-        SelectionMaskImageOpts2DMixin.__init__(self)
 
         self.preview_runner = ImagePreviewRunner(self)
 
@@ -224,7 +214,7 @@ class OWPreprocessImage(
         self.cb_mask_var = gui.comboBox(
             mbox,
             self,
-            "mask_attr_value",
+            "attr_mask",
             label="Column",
             contentsLength=12,
             searchable=True,
@@ -237,10 +227,10 @@ class OWPreprocessImage(
         self.cb_mask_value = gui.comboBox(
             mbox,
             self,
-            "mask_group_value",
+            "value_mask",
             label="Value",
             contentsLength=12,
-            callback=self.set_mask_from_selection,
+            callback=self.update_mask,
             **common_options
         )
 
@@ -324,20 +314,15 @@ class OWPreprocessImage(
         self.Warning.no_mask_group.clear()
         self.cb_mask_value.clear()
         try:
-            self.cb_mask_value.addItems(
-                list(self.data.domain[self.mask_attr_value].values)
-            )
+            self.cb_mask_value.addItems(list(self.data.domain[self.attr_mask].values))
             self.cb_mask_value.setCurrentIndex(0)
-            self.mask_group_value = 0
+            self.value_mask = 0
             # Need to update manually
-            self.set_mask_from_selection()
+            self.update_mask()
         except KeyError:
             self.Warning.no_mask_group()
 
-    def set_mask_from_selection(self):
-        self.mask_table = self.get_mask(
-            self.data, mask_attr_value=self.mask_attr_value, value=self.mask_group_value
-        )
+    def update_mask(self):
         self.on_modelchanged()
 
     def image_opts(self):
@@ -345,6 +330,8 @@ class OWPreprocessImage(
             'attr_x': str(self.attr_x),
             'attr_y': str(self.attr_y),
             'attr_value': str(self.attr_value) if self.attr_value is not None else None,
+            'attr_mask': str(self.attr_mask) if self.attr_mask is not None else None,
+            'value_mask': self.value_mask,
         }
 
     def create_outputs(self):
@@ -358,7 +345,6 @@ class OWPreprocessImage(
             self.run_task,
             self.data,
             self.reference_data,
-            self.mask_table,
             image_opts,
             pp_def,
             self.process_reference,
@@ -404,7 +390,6 @@ class OWPreprocessImage(
     def run_task(
         data: Orange.data.Table,
         reference: Orange.data.Table,
-        mask: Orange.data.Table,
         image_opts,
         pp_def,
         process_reference,
@@ -432,9 +417,7 @@ class OWPreprocessImage(
             plist.append(pp)
             if data is not None:
                 # run_all=True goes across all the attributes
-                data = execute_with_image_opts(
-                    pp, data, image_opts, run_all=True, mask=mask
-                )
+                data = execute_with_image_opts(pp, data, image_opts, run_all=True)
             progress_interrupt((i / n + 0.5 / n) * 100)
             if process_reference and reference is not None and i != n - 1:
                 reference = execute_with_image_opts(

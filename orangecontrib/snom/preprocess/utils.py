@@ -66,7 +66,7 @@ def _image_from_table(data, image_opts):
 
 
 class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
-    def __call__(self, data, image_opts, run_all=False, mask=None):
+    def __call__(self, data, image_opts, run_all=False):
         if run_all or len(data.domain.attributes) == 0:
             attrs_to_run = [v.name for v in data.domain.attributes]
             newdata = data.copy()
@@ -76,6 +76,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
             attrs_to_run = [image_opts["attr_value"]]
             newdata = _prepare_table_for_image(data, image_opts)
 
+        mask = get_mask_from_image_opts(data, image_opts)
         image_opts = image_opts.copy()  # otherwise this input will be changed
         new_vals = np.full_like(newdata.X, np.nan)
         for i, attr in enumerate(attrs_to_run):
@@ -113,7 +114,7 @@ class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
         if self.reference is None:
             raise MissingReferenceException("Preprocessor needs a reference.")
 
-    def __call__(self, data, image_opts, run_all=False, mask=None):
+    def __call__(self, data, image_opts, run_all=False):
         if run_all or len(data.domain.attributes) == 0:
             attrs_to_run = [v.name for v in data.domain.attributes]
             newdata = data.copy()
@@ -252,30 +253,18 @@ class CommonDomainImage2D(CommonDomain):
         raise NotImplementedError
 
 
-class SelectionMaskImageOpts2DMixin:
-    selected_image_opts = {
-        'attr_x': "map_x",
-        'attr_y': "map_y",
-        'attr_value': "Selected",
-    }
-
-    def __init__(self):
-        pass
-
-    def get_mask(self, data, mask_attr_value=None, value=1.0):
-        self.selected_image_opts["attr_value"] = mask_attr_value
-        if self.data is not None:
-            try:
-                # Prepare a mask compatible with pySNOM tranformers
-                masktable = _prepare_table_for_image(data, self.selected_image_opts)
-                maskimage, _ = _image_from_table(masktable, self.selected_image_opts)
-                mask = mask_from_datacondition(maskimage == value)
-            except KeyError:
-                mask = None
-        else:
-            mask = None
-
-        return mask
+def get_mask_from_image_opts(data, image_opts):
+    if image_opts.get("attr_mask", None) is None:
+        return None
+    image_opts = image_opts.copy()
+    image_opts["attr_value"] = image_opts["attr_mask"]
+    try:
+        masktable = _prepare_table_for_image(data, image_opts)
+    except KeyError:
+        return None
+    maskimage, _ = _image_from_table(masktable, image_opts)
+    mask = mask_from_datacondition(maskimage == image_opts["value_mask"])
+    return mask
 
 
 class MaskOptions(Enum):
