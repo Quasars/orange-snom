@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from Orange.data import Table, ContinuousVariable, Domain
+from Orange.data import Table, ContinuousVariable, Domain, DiscreteVariable
 
 from orangecontrib.spectroscopy.tests.test_preprocess import (
     TestCommonIndpSamplesMixin as TCommonIndpSamplesMixin,  # hide it from pytest
@@ -30,10 +30,13 @@ class TestPhaseUnwrap(unittest.TestCase, TCommonIndpSamplesMixin):
 
 def test_whitelight_mulcol():
     wl = Table("whitelight.gsf")
+    ncol = DiscreteVariable(
+        "mask", values=["No", "Yes"], compute_value=lambda d: d.get_column("map_y") > 30
+    )
     dom = Domain(
         [ContinuousVariable(name="%0.6f" % i) for i in range(1, 4)],
         wl.domain.class_vars,
-        wl.domain.metas,
+        wl.domain.metas + (ncol,),
     )
     out = wl.transform(dom)
     for i in range(2, 4):
@@ -45,7 +48,9 @@ def test_whitelight_mulcol():
 class _MultiplyImage(PreprocessImageOpts2DOnlyWhole):
     def transform_image(self, image, data, mask=None):
         multiplier = float(data.domain.attributes[0].name)
-        return image * multiplier
+        if mask is None:
+            mask = np.full_like(image, True)
+        return image * multiplier * mask
 
 
 class TestPreprocessImageOpts2DOnlyWhole(unittest.TestCase):
@@ -74,6 +79,26 @@ class TestPreprocessImageOpts2DOnlyWhole(unittest.TestCase):
         np.testing.assert_equal(out.X, no_atts.X)
         out = proc(no_atts, imageopts, run_all=True)
         np.testing.assert_equal(out.X, no_atts.X)
+
+    def test_mask(self):
+        wl = test_whitelight_mulcol()
+        imageopts = {
+            'attr_x': 'map_x',
+            'attr_y': 'map_y',
+            'attr_value': '2.000000',
+            'attr_mask': 'mask',
+            'value_mask': 1,
+        }
+        proc = _MultiplyImage()
+        out = proc(wl, imageopts, run_all=True)
+        mask = ~(wl.get_column("mask") == 1)
+        maski = ~mask
+        np.testing.assert_equal(out.X[:, 0][mask], wl.X[:, 0][mask] * 1)
+        np.testing.assert_equal(out.X[:, 1][mask], wl.X[:, 0][mask] * 2)
+        np.testing.assert_equal(out.X[:, 2][mask], wl.X[:, 0][mask] * 3)
+        np.testing.assert_equal(out.X[:, 0][maski], np.nan)
+        np.testing.assert_equal(out.X[:, 1][maski], np.nan)
+        np.testing.assert_equal(out.X[:, 2][maski], np.nan)
 
 
 class _MultiplyImageReference(PreprocessImageOpts2DOnlyWholeReference):
