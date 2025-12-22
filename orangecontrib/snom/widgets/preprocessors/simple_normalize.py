@@ -37,7 +37,7 @@ class SimpleNormEditor(BaseEditorOrange):
 
         self.method = "manual"
         self.value = 1.0
-        self.mask_method = 'IGNORE'
+        self.mask_method = 'ignore'
 
         form = QFormLayout()
         self.valueedit = lineEditFloatRange(
@@ -73,14 +73,14 @@ class SimpleNormEditor(BaseEditorOrange):
     def setParameters(self, params):
         self.method = params.get("method", "manual")
         self.value = params.get("value", 1)
-        self.mask_method = params.get("mask_method", "IGNORE")
+        self.mask_method = params.get("mask_method", "ignore")
 
     @classmethod
     def createinstance(cls, params):
         params = dict(params)
         method = str(params.get("method", "manual"))
         value = float(params.get("value", 1))
-        mask_method = params.get("mask_method", "IGNORE")
+        mask_method = params.get("mask_method", "ignore")
         return SimpleNorm(method=method, value=value, mask_method=mask_method)
 
     def set_preview_data(self, data):

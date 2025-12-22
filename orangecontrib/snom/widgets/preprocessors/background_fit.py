@@ -39,7 +39,7 @@ class BackGroundFitEditor(BaseEditorOrange):
 
         self.xorder = 1
         self.yorder = 1
-        self.mask_method = False
+        self.mask_method = "ignore"
 
         form = QFormLayout()
         xorderedit = lineEditIntRange(self, self, "xorder", callback=self.edited.emit)
@@ -65,14 +65,14 @@ class BackGroundFitEditor(BaseEditorOrange):
     def setParameters(self, params):
         self.xorder = params.get("xorder", 1)
         self.yorder = params.get("yorder", 1)
-        self.mask_method = params.get("mask_method", "IGNORE")
+        self.mask_method = params.get("mask_method", "ignore")
 
     @classmethod
     def createinstance(cls, params):
         params = dict(params)
         xorder = float(params.get("xorder", 1))
         yorder = float(params.get("yorder", 1))
-        mask_method = params.get("mask_method", "IGNORE")
+        mask_method = params.get("mask_method", "ignore")
         return BackGroundFit(xorder=xorder, yorder=yorder, mask_method=mask_method)
 
     def set_preview_data(self, data):

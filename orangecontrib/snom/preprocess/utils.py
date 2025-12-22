@@ -268,15 +268,17 @@ def get_mask_from_image_opts(data, image_opts):
 
 
 class MaskOptions(Enum):
-    IGNORE = 0
-    EXCLUDE = 1
-    INCLUDE = 2
+    ignore = 0
+    exclude = 1
+    include = 2
 
 
 def transform_mask(mask, option):
-    if option == MaskOptions.IGNORE:
-        mask = None
-    elif option == MaskOptions.INCLUDE:
-        mask = mask_from_datacondition(mask == 1.0)
-
-    return mask
+    if option == MaskOptions.ignore:
+        return None
+    elif option == MaskOptions.include:
+        return mask_from_datacondition(mask == 1.0)
+    elif option == MaskOptions.exclude:
+        return mask
+    else:
+        raise NotImplementedError

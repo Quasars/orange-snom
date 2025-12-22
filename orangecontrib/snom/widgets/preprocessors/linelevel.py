@@ -40,8 +40,7 @@ class LineLevelEditor(BaseEditorOrange):
         super().__init__(parent, **kwargs)
 
         self.method = 'median'
-        self.mask_method = 'IGNORE'
-        self.use_mask = False
+        self.mask_method = 'ignore'
 
         form = QFormLayout()
         self.levelmethod_cb = comboBox(self, self, "method", callback=self.setmethod)
@@ -65,13 +64,13 @@ class LineLevelEditor(BaseEditorOrange):
 
     def setParameters(self, params):
         self.method = params.get("method", "median")
-        self.mask_method = params.get("mask_method", "IGNORE")
+        self.mask_method = params.get("mask_method", "ignore")
 
     @classmethod
     def createinstance(cls, params):
         params = dict(params)
         method = params.get("method", "median")
-        mask_method = params.get("mask_method", "IGNORE")
+        mask_method = params.get("mask_method", "ignore")
         return LineLevelProcessor(method=method, mask_method=mask_method)
 
     def set_preview_data(self, data):
