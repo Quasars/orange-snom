@@ -145,7 +145,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
     icon = "icons/preprocessimage.svg"
     priority = 1010
 
-    settings_version = 3
+    settings_version = 4
 
     settingsHandler = DomainContextHandler(
         match_values=DomainContextHandler.MATCH_VALUES_ALL
