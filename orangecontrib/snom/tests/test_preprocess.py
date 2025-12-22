@@ -43,7 +43,7 @@ def test_whitelight_mulcol():
 
 
 class _MultiplyImage(PreprocessImageOpts2DOnlyWhole):
-    def transform_image(self, image, data):
+    def transform_image(self, image, data, mask=None):
         multiplier = float(data.domain.attributes[0].name)
         return image * multiplier
 
