@@ -1,7 +1,9 @@
 import numpy as np
+from enum import Enum
 
 from Orange.data import Domain
 from Orange.preprocess import Preprocess
+
 from orangecontrib.spectroscopy.preprocess import (
     CommonDomain,
     SelectColumn,
@@ -13,6 +15,8 @@ from orangecontrib.spectroscopy.utils import (
     values_to_linspace,
     index_values,
 )
+
+from pySNOM.images import mask_from_datacondition
 
 
 class PreprocessImageOpts(Preprocess):
@@ -72,6 +76,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
             attrs_to_run = [image_opts["attr_value"]]
             newdata = _prepare_table_for_image(data, image_opts)
 
+        mask = get_mask_from_image_opts(data, image_opts)
         image_opts = image_opts.copy()  # otherwise this input will be changed
         new_vals = np.full_like(newdata.X, np.nan)
         for i, attr in enumerate(attrs_to_run):
@@ -85,7 +90,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
 
             try:
                 image, indices = _image_from_table(temp, image_opts)
-                transformed = self.transform_image(image, newdata)
+                transformed = self.transform_image(image, newdata, mask=mask)
                 new_vals[:, i] = transformed[indices].reshape(-1)
             except InvalidAxisException:
                 new_vals[:, i] = np.full(len(newdata), np.nan)
@@ -95,7 +100,7 @@ class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
 
         return newdata
 
-    def transform_image(self, image, data):
+    def transform_image(self, image, data, mask=None):
         """
         image: a numpy 2D array where image[y,x] is the value in image row y and column x
         data: image data set (used for passing meta data)
@@ -245,4 +250,35 @@ class CommonDomainImage2D(CommonDomain):
         """
         image: a numpy 2D array where image[y,x] is the value in image row y and column x
         """
+        raise NotImplementedError
+
+
+def get_mask_from_image_opts(data, image_opts):
+    if image_opts.get("attr_mask", None) is None:
+        return None
+    image_opts = image_opts.copy()
+    image_opts["attr_value"] = image_opts["attr_mask"]
+    try:
+        masktable = _prepare_table_for_image(data, image_opts)
+    except KeyError:
+        return None
+    maskimage, _ = _image_from_table(masktable, image_opts)
+    mask = mask_from_datacondition(maskimage == image_opts["value_mask"])
+    return mask
+
+
+class MaskOptions(Enum):
+    ignore = 0
+    exclude = 1
+    include = 2
+
+
+def transform_mask(mask, option):
+    if option == MaskOptions.ignore:
+        return None
+    elif option == MaskOptions.include:
+        return mask_from_datacondition(mask == 1.0)
+    elif option == MaskOptions.exclude:
+        return mask
+    else:
         raise NotImplementedError

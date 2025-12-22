@@ -2,9 +2,10 @@ import numpy as np
 
 from orangewidget.tests.utils import excepthook_catch
 
-from Orange.data import Table, Domain
+from Orange.data import Table, Domain, DiscreteVariable
 from Orange.widgets.tests.base import WidgetTest
 from Orange.preprocess.preprocess import Preprocess
+from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.spectroscopy.tests import spectral_preprocess
 from orangecontrib.spectroscopy.tests.spectral_preprocess import (
@@ -24,6 +25,22 @@ PREPROCESSORS = list(map(pack_editor, preprocess_image_editors.sorted()))
 
 
 WHITELIGHT = Table("whitelight.gsf")
+
+
+def whitelight_with_mask():
+    data = WHITELIGHT
+    ncol = DiscreteVariable(
+        "mask", values=["No", "Yes"], compute_value=lambda d: d.get_column("map_y") > 30
+    )
+    domain = Domain(
+        data.domain.attributes,
+        class_vars=data.domain.class_vars,
+        metas=data.domain.metas + (ncol,),
+    )
+    return data.transform(domain)
+
+
+WHITELIGHT_MASK = whitelight_with_mask()
 
 
 class TestAllPreprocessors(WidgetTest):
@@ -121,6 +138,40 @@ class TestOWPreprocess(WidgetTest):
             with excepthook_catch(raise_on_exit=True):
                 widget = self.create_widget(OWPreprocessImage, settings)
                 self.assertTrue(widget.Error.loading.is_shown())
+
+    def test_masking_setting(self):
+        self.send_signal(self.widget.Inputs.data, WHITELIGHT)
+        self.assertEqual(list(self.widget.mask_value_model), [None])
+        self.assertEqual(len(self.widget.cb_mask_value), 0)
+
+        self.send_signal(self.widget.Inputs.data, WHITELIGHT_MASK)
+        mattr = WHITELIGHT_MASK.domain.metas[-1]
+        self.assertIn(None, list(self.widget.mask_value_model))
+        self.assertIn(mattr, list(self.widget.mask_value_model))
+        self.assertEqual(len(self.widget.cb_mask_value), 0)
+        simulate.combobox_activate_index(self.widget.cb_mask_var, 2)
+        self.assertEqual(self.widget.attr_mask, mattr)
+        self.assertEqual(self.widget.value_mask, 0)
+        self.assertEqual(len(self.widget.cb_mask_value), 2)
+        self.assertEqual(self.widget.value_mask, 0)
+        simulate.combobox_activate_index(self.widget.cb_mask_value, 1)
+        self.assertEqual(self.widget.value_mask, 1)
+
+        self.send_signal(self.widget.Inputs.data, WHITELIGHT)
+        self.assertEqual(self.widget.attr_mask, None)
+        self.assertEqual(self.widget.value_mask, 0)
+
+        self.send_signal(self.widget.Inputs.data, WHITELIGHT_MASK)
+        self.assertEqual(self.widget.attr_mask, mattr)
+        self.assertEqual(self.widget.value_mask, 1)
+
+    def test_masking_opts(self):
+        self.send_signal(self.widget.Inputs.data, WHITELIGHT_MASK)
+        simulate.combobox_activate_index(self.widget.cb_mask_var, 2)  # mask
+        simulate.combobox_activate_index(self.widget.cb_mask_value, 1)
+        image_opts = self.widget.image_opts()
+        self.assertEqual(image_opts["attr_mask"], "mask")
+        self.assertEqual(image_opts["value_mask"], 1)
 
 
 class TestPreprocessWarning(spectral_preprocess.TestWarning):

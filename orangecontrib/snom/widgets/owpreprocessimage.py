@@ -71,7 +71,7 @@ class SpectralImagePreprocess(GeneralPreprocess, ImagePreviews, openclass=True):
 
 def execute_with_image_opts(pp, data, image_opts, run_all=False):
     if isinstance(pp, PreprocessImageOpts):
-        return pp(data, image_opts, run_all)
+        return pp(data, image_opts, run_all=run_all)
     return pp(data)
 
 
@@ -145,9 +145,11 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
     icon = "icons/preprocessimage.svg"
     priority = 1010
 
-    settings_version = 3
+    settings_version = 4
 
-    settingsHandler = DomainContextHandler()
+    settingsHandler = DomainContextHandler(
+        match_values=DomainContextHandler.MATCH_VALUES_ALL
+    )
 
     _max_preview_spectra = 1000000
     preview_curves = Setting(100000)
@@ -156,6 +158,8 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
     BUTTON_ADD_LABEL = "Add preprocessor..."
 
     attr_value = ContextSetting(None)
+    attr_mask = ContextSetting(None, exclude_attributes=True)
+    value_mask = ContextSetting(0)
     attr_x = ContextSetting(None, exclude_attributes=True)
     attr_y = ContextSetting(None, exclude_attributes=True)
 
@@ -185,17 +189,54 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
 
         self.preview_runner = ImagePreviewRunner(self)
 
+        mbox = gui.widgetBox(None, "Mask")
+        self.controlArea.layout().insertWidget(2, mbox)
+
+        self.mask_value_model = DomainModel(
+            order=(
+                DomainModel.CLASSES,
+                DomainModel.Separator,
+                DomainModel.METAS,
+            ),
+            valid_types=DiscreteVariable,
+            placeholder="None",
+        )
+
         self.feature_value_model = DomainModel(
             order=(DomainModel.ATTRIBUTES),
             valid_types=ContinuousVariable,
         )
 
         common_options = {
-            "labelWidth": 50,
+            "labelWidth": 70,
             "orientation": Qt.Horizontal,
             "sendSelectedValue": True,
         }
 
+        self.cb_mask_var = gui.comboBox(
+            mbox,
+            self,
+            "attr_mask",
+            label="Column",
+            contentsLength=12,
+            searchable=True,
+            callback=self.update_mask_value_items,
+            model=self.mask_value_model,
+            **common_options
+        )
+
+        common_options["sendSelectedValue"] = False
+        self.cb_mask_value = gui.comboBox(
+            mbox,
+            self,
+            "value_mask",
+            label="Value",
+            contentsLength=12,
+            callback=self.update_mask,
+            **common_options
+        )
+
+        common_options["sendSelectedValue"] = True
         self.feature_value = gui.comboBox(
             self.preview_settings_box,
             self,
@@ -233,6 +274,9 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
 
         self.contextAboutToBeOpened.connect(lambda x: self.init_interface_data(x[0]))
 
+        # update values choosing mask variable
+        self.contextOpened.connect(self.update_mask_value_items)
+
         self.preview_runner.preview_updated.connect(self.redraw_data)
 
     def update_attr(self):
@@ -263,12 +307,26 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
         self.xy_model.set_domain(domain)
         self.attr_x = self.xy_model[0] if self.xy_model else None
         self.attr_y = self.xy_model[1] if len(self.xy_model) >= 2 else self.attr_x
+        self.mask_value_model.set_domain(domain)
+        self.mask_value = None
+
+    def update_mask_value_items(self):
+        self.cb_mask_value.clear()
+        if self.attr_mask is not None:
+            self.cb_mask_value.addItems(list(self.data.domain[self.attr_mask].values))
+            self.cb_mask_value.setCurrentIndex(self.value_mask)
+        self.update_mask()
+
+    def update_mask(self):
+        self.on_modelchanged()
 
     def image_opts(self):
         return {
             'attr_x': str(self.attr_x),
             'attr_y': str(self.attr_y),
             'attr_value': str(self.attr_value) if self.attr_value is not None else None,
+            'attr_mask': str(self.attr_mask) if self.attr_mask is not None else None,
+            'value_mask': self.value_mask,
         }
 
     def create_outputs(self):
