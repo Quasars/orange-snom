@@ -81,7 +81,7 @@ class TestOWPreprocess(WidgetTest):
         )
 
     def test_output_preprocessor_without_data(self):
-        self.widget.add_preprocessor(pack_editor(CutEditor))
+        self.widget.add_preprocessor(pack_editor(SavitzkyGolayFilteringEditor))
         self.widget.commit.now()
         self.wait_until_finished()
         out = self.get_output(self.widget.Outputs.preprocessor)

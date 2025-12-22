@@ -69,9 +69,9 @@ class SpectralImagePreprocess(GeneralPreprocess, ImagePreviews, openclass=True):
         ImagePreviews.shutdown(self)
 
 
-def execute_with_image_opts(pp, data, image_opts):
+def execute_with_image_opts(pp, data, image_opts, run_all=False):
     if isinstance(pp, PreprocessImageOpts):
-        return pp(data, image_opts)
+        return pp(data, image_opts, run_all)
     return pp(data)
 
 
@@ -88,20 +88,16 @@ class ImagePreviewRunner(PreviewRunner):
             master.preprocessormodel.item(i)
             for i in range(master.preprocessormodel.rowCount())
         ]
-        if master.data is not None:
-            data = master.sample_data(master.data)
-            image_opts = master.image_opts()
-            self.start(
-                self.run_preview,
-                data,
-                master.reference_data,
-                image_opts,
-                pp_def,
-                master.process_reference,
-            )
-        else:
-            master.curveplot.set_data(None)
-            master.curveplot_after.set_data(None)
+        data = master.sample_data(master.data)
+        image_opts = master.image_opts()
+        self.start(
+            self.run_preview,
+            data,
+            master.reference_data,
+            image_opts,
+            pp_def,
+            master.process_reference,
+        )
 
     @staticmethod
     def run_preview(
@@ -123,7 +119,8 @@ class ImagePreviewRunner(PreviewRunner):
             state.set_partial_result((i, data, reference))
             item = pp_def[i]
             pp = create_preprocessor(item, reference)
-            data = execute_with_image_opts(pp, data, image_opts)
+            if data is not None:
+                data = execute_with_image_opts(pp, data, image_opts)
             progress_interrupt(0)
             if process_reference and reference is not None and i != n - 1:
                 reference = execute_with_image_opts(pp, reference, image_opts)
@@ -148,7 +145,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
     icon = "icons/preprocessimage.svg"
     priority = 1010
 
-    settings_version = 2
+    settings_version = 3
 
     settingsHandler = DomainContextHandler()
 
@@ -189,13 +186,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
         self.preview_runner = ImagePreviewRunner(self)
 
         self.feature_value_model = DomainModel(
-            order=(
-                DomainModel.ATTRIBUTES,
-                DomainModel.Separator,
-                DomainModel.CLASSES,
-                DomainModel.Separator,
-                DomainModel.METAS,
-            ),
+            order=(DomainModel.ATTRIBUTES),
             valid_types=ContinuousVariable,
         )
 
@@ -277,7 +268,7 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
         return {
             'attr_x': str(self.attr_x),
             'attr_y': str(self.attr_y),
-            'attr_value': str(self.attr_value),
+            'attr_value': str(self.attr_value) if self.attr_value is not None else None,
         }
 
     def create_outputs(self):
@@ -299,6 +290,15 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
     def set_data(self, data):
         self.curveplot.set_data(None)
         self.curveplot_after.set_data(None)
+
+        def catts(data):
+            return [
+                a for a in data.domain.attributes if isinstance(a, ContinuousVariable)
+            ]
+
+        if data is not None and len(catts(data)) == 0:
+            # invalid data, dataset needs at least one continuous variable
+            data = None
 
         super().set_data(data)
 
@@ -352,10 +352,14 @@ class OWPreprocessImage(SpectralImagePreprocessReference):
             pp = create_preprocessor(item, reference)
             plist.append(pp)
             if data is not None:
-                data = execute_with_image_opts(pp, data, image_opts)
+                # run_all=True goes across all the attributes
+                data = execute_with_image_opts(pp, data, image_opts, run_all=True)
             progress_interrupt((i / n + 0.5 / n) * 100)
             if process_reference and reference is not None and i != n - 1:
-                reference = execute_with_image_opts(pp, reference, image_opts)
+                reference = execute_with_image_opts(
+                    pp, reference, image_opts, run_all=True
+                )
+
         # if there are no preprocessors, return None instead of an empty list
         preprocessor = preprocess.preprocess.PreprocessorList(plist) if plist else None
         return data, preprocessor

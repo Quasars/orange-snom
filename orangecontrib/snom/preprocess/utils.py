@@ -20,7 +20,9 @@ class PreprocessImageOpts(Preprocess):
 
 
 class PreprocessImageOpts2D(PreprocessImageOpts):
-    def __call__(self, data, image_opts):
+    def __call__(self, data, image_opts, run_all=False):
+        if run_all:
+            raise Exception("run_all not supported yet")
         common = self.image_transformer(data, image_opts)
         at = data.domain[image_opts["attr_value"]].copy(
             compute_value=SelectColumn(0, common)
@@ -60,18 +62,38 @@ def _image_from_table(data, image_opts):
 
 
 class PreprocessImageOpts2DOnlyWhole(PreprocessImageOpts):
-    def __call__(self, data, image_opts):
-        data = _prepare_table_for_image(data, image_opts)
-        try:
-            image, indices = _image_from_table(data, image_opts)
-            transformed = self.transform_image(image, data)
-            col = transformed[indices].reshape(-1)
-        except InvalidAxisException:
-            col = np.full(len(data), np.nan)
-        if len(data):
-            with data.unlocked(data.X):
-                data.X[:, 0] = col
-        return data
+    def __call__(self, data, image_opts, run_all=False):
+        if run_all or len(data.domain.attributes) == 0:
+            attrs_to_run = [v.name for v in data.domain.attributes]
+            newdata = data.copy()
+        else:
+            # This is only for the preview for a single feature image
+            # So it only processes one image
+            attrs_to_run = [image_opts["attr_value"]]
+            newdata = _prepare_table_for_image(data, image_opts)
+
+        image_opts = image_opts.copy()  # otherwise this input will be changed
+        new_vals = np.full_like(newdata.X, np.nan)
+        for i, attr in enumerate(attrs_to_run):
+            image_opts["attr_value"] = attr
+            try:
+                temp = _prepare_table_for_image(newdata, image_opts)
+            except KeyError:
+                raise WrongReferenceException(
+                    "Data and reference do not contain the same features"
+                )
+
+            try:
+                image, indices = _image_from_table(temp, image_opts)
+                transformed = self.transform_image(image, newdata)
+                new_vals[:, i] = transformed[indices].reshape(-1)
+            except InvalidAxisException:
+                new_vals[:, i] = np.full(len(newdata), np.nan)
+
+        with newdata.unlocked(newdata.X):
+            newdata.X = new_vals
+
+        return newdata
 
     def transform_image(self, image, data):
         """
@@ -87,22 +109,54 @@ class PreprocessImageOpts2DOnlyWholeReference(PreprocessImageOpts):
         if self.reference is None:
             raise MissingReferenceException("Preprocessor needs a reference.")
 
-    def __call__(self, data, image_opts):
-        data = _prepare_table_for_image(data, image_opts)
-        reference = _prepare_table_for_image(self.reference, image_opts)
-        try:
-            image, indices = _image_from_table(data, image_opts)
-            ref_image, _ = _image_from_table(reference, image_opts)
-            if image.shape != ref_image.shape:
-                raise WrongReferenceException("Reference data should have length 1")
-            transformed = self.transform_image(image, ref_image, data)
-            col = transformed[indices].reshape(-1)
-        except InvalidAxisException:
-            col = np.full(len(data), np.nan)
-        if len(data):
-            with data.unlocked(data.X):
-                data.X[:, 0] = col
-        return data
+    def __call__(self, data, image_opts, run_all=False):
+        if run_all or len(data.domain.attributes) == 0:
+            attrs_to_run = [v.name for v in data.domain.attributes]
+            newdata = data.copy()
+        else:
+            # This is only for the preview for a single feature image
+            # So it only processes one image
+            attrs_to_run = [image_opts["attr_value"]]
+            newdata = _prepare_table_for_image(data, image_opts)
+
+        ref_attrs = [v.name for v in self.reference.domain.attributes]
+
+        if set(attrs_to_run) != set(ref_attrs) or len(ref_attrs) != 1:
+            WrongReferenceException(
+                "Reference has to contain the same features or be single-featured"
+            )
+
+        image_opts = image_opts.copy()  # because it will be modified
+        image_opts_ref = image_opts
+
+        if len(ref_attrs) == 1:  # use the only reference regardless of the name
+            image_opts_ref = image_opts.copy()  # unlink to image_opts
+            image_opts_ref["attr_value"] = ref_attrs[0]
+
+        new_vals = np.full_like(newdata.X, np.nan)
+        for i, attr in enumerate(attrs_to_run):
+            image_opts["attr_value"] = attr
+
+            try:
+                temp = _prepare_table_for_image(newdata, image_opts)
+                reference = _prepare_table_for_image(self.reference, image_opts_ref)
+            except KeyError:
+                raise WrongReferenceException(
+                    "Data and reference do not contain the same features"
+                )
+
+            try:
+                image, indices = _image_from_table(temp, image_opts)
+                ref_image, _ = _image_from_table(reference, image_opts_ref)
+                transformed = self.transform_image(image, ref_image, temp)
+                new_vals[:, i] = transformed[indices].reshape(-1)
+            except InvalidAxisException:
+                new_vals[:, i] = np.full(len(newdata), np.nan)
+
+        with newdata.unlocked(newdata.X):
+            newdata.X = new_vals
+
+        return newdata
 
     def transform_image(self, image, ref_image, data):
         """
@@ -153,6 +207,17 @@ def domain_with_single_attribute_in_x(attribute, domain):
     class_vars = [a for a in domain.class_vars if a.name != attribute.name]
     metas = [a for a in domain.metas if a.name != attribute.name]
     return Domain([attribute], class_vars, metas)
+
+
+def table_with_no_attribute(data):
+    """Create a domain with only the attribute in domain.attributes and ensure
+    that the same attribute is removed from metas and class_vars if it was present
+    there."""
+
+    newdomain = Domain([], data.domain.class_vars, data.domain.metas)
+
+    data = data.transform(newdomain)
+    return data
 
 
 class CommonDomainImage2D(CommonDomain):
