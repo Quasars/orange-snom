@@ -20,7 +20,7 @@ requirements:
     - setuptools_scm
   run:
     - python >=3.11
-    - orange3 >=3.34.0
+    - orange3 >=3.35.0
     - orange-spectroscopy >=0.7.2
     - numpy >=1.24.0
     - pySNOM >=0.1.0
