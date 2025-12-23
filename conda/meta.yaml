@@ -24,6 +24,7 @@ requirements:
     - orange-spectroscopy >=0.7.2
     - numpy >=1.24.0
     - pySNOM >=0.1.0
+    - snompy >=0.1.7
 
 
 test:
